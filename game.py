@@ -26,22 +26,25 @@ class Game:
         self.world.generate()
         while self.run:
             clock = pygame.time.Clock()
-            clock.tick_busy_loop(30)
+            clock.tick_busy_loop(6000)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.run = False
                     print('exit')
 
             keys_list = pygame.key.get_pressed()
-            action = world.ACTION_NONE
+            actions = []
             if keys_list[pygame.K_a]:
-                action = world.ACTION_BACK
+                actions.append(world.ACTION_BACK)
             if keys_list[pygame.K_d]:
-                action = world.ACTION_FORWARD
+                actions.append(world.ACTION_FORWARD)
             if keys_list[pygame.K_SPACE]:
-                action = world.ACTION_JUMP
-            self.world.playerSubject.perform_action(action)
-
+                actions.append(world.ACTION_JUMP)
+            if actions:
+                for _action in actions:
+                    self.world.playerSubject.perform_action(_action)
+            else:
+                self.world.playerSubject.perform_action(world.ACTION_NONE)
             self.world.tick()
             self.draw()
             pygame.display.update()
