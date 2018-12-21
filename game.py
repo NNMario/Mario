@@ -26,7 +26,7 @@ class Game:
         self.world.generate()
         while self.run:
             clock = pygame.time.Clock()
-            clock.tick_busy_loop(6000)
+            clock.tick_busy_loop(60)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.run = False

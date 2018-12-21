@@ -4,6 +4,7 @@ import subjects.agent
 import objects.object
 import sprites
 import helpers
+import side_collisions
 
 ACTION_NONE = 0
 ACTION_FORWARD = 1
@@ -29,7 +30,7 @@ class World:
             sprites.mario
         )
         self.playerSubject.set_velocity(3, 10)
-
+        self.playerSubject.set_acceleration(0, config.__GRAVITY__)
         self.subjects.add(self.playerSubject)
         self.sprites.add(self.playerSubject)
 
@@ -42,27 +43,13 @@ class World:
             self.objects.add(block)
             self.sprites.add(block)
 
+        block = objects.object.Block(20, self.height - config.__BLOCK_SIZE__ - 50, config.__BLOCK_SIZE__,
+                                     config.__BLOCK_SIZE__)
+
+        self.objects.add(block)
+        self.sprites.add(block)
+
     def tick(self):
         for subject in self.subjects:
-            subject.move()
-            self.check_move(subject)
+            subject.move(self)
             subject.update()
-
-    def check_move(self, subject):
-        w_width, w_height = self.bounds
-        if subject.position.x + subject.rect.width > w_width:
-            subject.position.x = w_width - subject.rect.width
-        elif subject.position.x < 0:
-            subject.position.x = 0
-        elif subject.position.y + subject.rect.height > w_height:
-            subject.position.y = w_height - subject.rect.height
-        elif subject.position.y < 0:
-            subject.position.y = 0
-
-        hits = pygame.sprite.spritecollide(subject, self.sprites, False)
-
-        for hit in hits:
-            if hit != subject and subject.current_velocity.y > 0:
-                subject.position.y = hit.rect.y - subject.rect.height
-                subject.stop_jump()
-                break

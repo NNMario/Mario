@@ -1,7 +1,6 @@
 import pygame
-import world
-import config
 import helpers
+import world
 
 
 class Agent(pygame.sprite.Sprite):
@@ -10,9 +9,8 @@ class Agent(pygame.sprite.Sprite):
         self.image = sprite
         self.image = pygame.transform.scale(self.image, (width, height))
         self.rect = self.image.get_rect()
-        self.rect.topleft = x, y
+        self.rect.x, self.rect.y = x, y
 
-        self.position = helpers.Vec2d(x, y)
         self.velocity = helpers.Vec2d(0, 0)
         self.current_velocity = helpers.Vec2d(0, 0)
         self.acceleration = helpers.Vec2d(0, 0)
@@ -21,9 +19,6 @@ class Agent(pygame.sprite.Sprite):
 
         self._sprite = None
         self._type = None
-
-    def update(self):
-        self.rect.topleft = self.position.x, self.position.y
 
     def perform_action(self, action):
         if action == world.ACTION_NONE:
@@ -44,7 +39,6 @@ class Agent(pygame.sprite.Sprite):
 
     def jump(self):
         if not self.is_jump:
-            self.acceleration.y = config.__GRAVITY__
             self.is_jump = True
             self.current_velocity.y = -1 * self.velocity.y
             # self.rect.x += 1
@@ -53,12 +47,50 @@ class Agent(pygame.sprite.Sprite):
 
     def stop_jump(self):
         self.is_jump = False
-        self.current_velocity.y = 0
-        self.acceleration.y = 0
 
-    def move(self):
+    def move(self, world):
         self.current_velocity += self.acceleration
-        self.position += self.current_velocity + 0.5 * self.acceleration
+        dx = self.current_velocity.x + 0.5 * self.acceleration.x
+        self.rect.x += dx
+
+        w_width, w_height = world.bounds
+        if self.rect.x + self.rect.width > w_width and self.current_velocity.x > 0:
+            self.rect.x = w_width - self.rect.width
+            self.current_velocity.x = 0
+        elif self.rect.x <= 0 and self.current_velocity.x < 0:
+            self.current_velocity.x = 0
+            self.rect.x = 0
+
+        hits = pygame.sprite.spritecollide(self, world.sprites, False)
+        for hit in hits:
+            if hit != self:
+                if dx > 0:
+                    self.rect.right = hit.rect.left
+                    self.current_velocity.x = 0
+                else:
+                    self.rect.left = hit.rect.right
+                    self.current_velocity.x = 0
+
+        dy = self.current_velocity.y + 0.5 * self.acceleration.y
+        self.rect.y += dy
+        if self.rect.y + self.rect.height > w_height and self.current_velocity.y < 0:
+            self.rect.y = w_height - self.rect.height
+            self.current_velocity.y = 0
+        elif self.rect.y < 0 and self.current_velocity.y > 0:
+            self.current_velocity.y = 0
+            self.rect.y = 0
+
+        hits = pygame.sprite.spritecollide(self, world.sprites, False)
+        for hit in hits:
+            if hit != self:
+                if dy > 0:
+                    self.rect.bottom = hit.rect.top
+                    self.current_velocity.y = 0
+                    self.stop_jump()
+                else:
+                    self.rect.top = hit.rect.bottom
+                    self.current_velocity.y = 0
+
 
 
 class PlayerAgent(Agent):
