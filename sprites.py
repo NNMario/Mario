@@ -45,11 +45,13 @@ background = None
 sprites = None
 block = None
 mario = None
+princess = None
 
 
 def setup():
-    global background, sprites, block, mario
+    global background, sprites, block, mario, princess
     background = pygame.image.load('sprites/background.png')
     sprites = Spritesheet('sprites/spritesheet.png')
     block = sprites.image_at((669, 533, 30, 30), colorkey=(255, 255, 255))
     mario = sprites.image_at((225, 8, 15, 13), colorkey=(255, 255, 255))
+    princess = sprites.image_at((823, 1105, 16, 31), colorkey=(255, 255, 255))
