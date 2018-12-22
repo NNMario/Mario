@@ -20,7 +20,7 @@ class Game:
 
     def draw(self):
         win.blit(sprites.background, (0, 0))
-        self.world.sprites.draw(win)
+        self.world.draw(win)
 
     def start(self):
         self.world.generate()

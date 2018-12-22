@@ -351,32 +351,3 @@ class Vec2d(object):
     def __setstate__(self, dict):
         self.x, self.y = dict
 
-
-def check_collision(rect1, rect2):
-    text = ''
-    collision = [False] * 9
-    collision[0] = rect2.collidepoint(rect1.topleft)
-    collision[1] = rect2.collidepoint(rect1.topright)
-    collision[2] = rect2.collidepoint(rect1.bottomleft)
-    collision[3] = rect2.collidepoint(rect1.bottomright)
-
-    collision[4] = rect2.collidepoint(rect1.midleft)
-    collision[5] = rect2.collidepoint(rect1.midright)
-    collision[6] = rect2.collidepoint(rect1.midtop)
-    collision[7] = rect2.collidepoint(rect1.midbottom)
-
-    collision[8] = rect2.collidepoint(rect1.center)
-
-    if collision[0] or collision[2] or collision[4]:
-        text += "left "
-
-    if collision[1] or collision[3] or collision[5]:
-        text += "right "
-
-    if collision[0] or collision[1] or collision[6]:
-        text += "top "
-
-    if collision[2] or collision[3] or collision[7]:
-        text += "bottom "
-
-    return text
