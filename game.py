@@ -2,6 +2,8 @@ import pygame
 import config
 import sprites
 import world
+from controllers.player_controller import RandomController
+from controllers.player_controller import KeyBoardController
 
 
 class Game:
@@ -24,7 +26,10 @@ class Game:
 
     def start(self):
         while self.run:
-            self.world = world.World((self.w_width, self.w_height))
+            current_controller = KeyBoardController()
+            # rand_ctrl = RandomController()
+            # self.world = world.World((self.w_width, self.w_height), keyboard)
+            self.world = world.World((self.w_width, self.w_height), current_controller)
             self.world.generate()
 
             while self.run and not self.world.ended:
@@ -35,19 +40,24 @@ class Game:
                         self.run = False
                         print('exit')
 
-                keys_list = pygame.key.get_pressed()
-                actions = []
-                if keys_list[pygame.K_a]:
-                    actions.append(world.ACTION_BACK)
-                if keys_list[pygame.K_d]:
-                    actions.append(world.ACTION_FORWARD)
-                if keys_list[pygame.K_SPACE]:
-                    actions.append(world.ACTION_JUMP)
-                if actions:
-                    for _action in actions:
-                        self.world.playerSubject.perform_action(_action)
-                else:
-                    self.world.playerSubject.perform_action(world.ACTION_NONE)
+                if isinstance(current_controller, KeyBoardController):
+                    keys_list = pygame.key.get_pressed()
+                    actions = []
+                    if keys_list[pygame.K_a]:
+                        # keyboard.current_action = world.ACTION_BACK
+                        actions.append(world.ACTION_BACK)
+                    if keys_list[pygame.K_d]:
+                        # keyboard.current_action = world.ACTION_FORWARD
+                        actions.append(world.ACTION_FORWARD)
+                    if keys_list[pygame.K_SPACE]:
+                        # keyboard.current_action = world.ACTION_JUMP
+                        actions.append(world.ACTION_JUMP)
+
+                    if actions:
+                        current_controller.current_actions = actions
+                    else:
+                        current_controller.current_actions = [ world.ACTION_NONE ]
+
                 self.world.tick()
                 self.draw()
                 pygame.display.update()

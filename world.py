@@ -5,6 +5,7 @@ import config
 import objects.agent
 import objects.object
 import sprites
+import controllers.player_controller
 
 ACTION_NONE = 0
 ACTION_FORWARD = 1
@@ -13,29 +14,30 @@ ACTION_JUMP = 3
 
 
 class World:
-    def __init__(self, bounds):
+    def __init__(self, bounds, player_controller):
         self.sprites = pygame.sprite.Group()
         self.subjects = pygame.sprite.Group()
         self.platforms = pygame.sprite.Group()
-        self.lose_triggers = pygame.sprite.Group()
+        self.lose_triggers = pygame.sprite.Group()  # Will make the player lose on collide
         self.bounds = bounds
         self.width, self.height = bounds
         self.view_x = 0
         self.block_length = 0
 
+        self.player_controller = player_controller
         player_x = 0
         player_y = self.height - config.__BLOCK_SIZE__ - config.__PLAYER_HEIGHT__
-        self.playerSubject = objects.agent.PlayerAgent(
+        self.player_subject = objects.agent.PlayerAgent(
             player_x,
             player_y,
             config.__PLAYER_WIDTH__,
             config.__PLAYER_HEIGHT__,
-            sprites.mario
+            self.player_controller
         )
-        self.playerSubject.set_velocity(3, 10)
-        self.playerSubject.set_acceleration(0, config.__GRAVITY__)
-        self.subjects.add(self.playerSubject)
-        self.sprites.add(self.playerSubject)
+        self.player_subject.set_velocity(3, 10)
+        self.player_subject.set_acceleration(0, config.__GRAVITY__)
+        self.subjects.add(self.player_subject)
+        self.sprites.add(self.player_subject)
 
         self.ended = False
         self.max_x = 0
@@ -80,13 +82,13 @@ class World:
             subject.tick(self)
             subject.update()
 
-        hits = pygame.sprite.spritecollide(self.playerSubject, self.lose_triggers, False)
+        hits = pygame.sprite.spritecollide(self.player_subject, self.lose_triggers, False)
         if hits:
             self.end()
             return
 
         center_x = self.view_x + self.width / 2.0
-        dx = self.playerSubject.rect.x - center_x
+        dx = self.player_subject.rect.x - center_x
         if dx > 0 and self.view_x + self.width < self.block_length * config.__BLOCK_SIZE__:
             self.view_x += dx
 
@@ -96,7 +98,7 @@ class World:
         self.ended = True
 
     def calculate_score(self):
-        self.max_x = max(self.max_x, self.playerSubject.rect.x)
+        self.max_x = max(self.max_x, self.player_subject.rect.x)
         self.score = self.max_x + self.coins
 
     def draw(self, win):

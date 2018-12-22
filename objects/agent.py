@@ -2,10 +2,11 @@ import pygame
 import helpers
 import world
 import objects.object
+import sprites
 
 
 class Agent(objects.object.Drawable):
-    def __init__(self, x, y, width, height, sprite=None):
+    def __init__(self, x, y, width, height, controller, sprite=None):
         objects.object.Drawable.__init__(self, x, y, width, height, sprite)
 
         self.velocity = helpers.Vec2d(0, 0)
@@ -13,6 +14,7 @@ class Agent(objects.object.Drawable):
         self.acceleration = helpers.Vec2d(0, 0)
         self.is_jump = False
         self._type = None
+        self.controller = controller
 
     def perform_action(self, action):
         if action == world.ACTION_NONE:
@@ -43,6 +45,8 @@ class Agent(objects.object.Drawable):
         self.is_jump = False
 
     def tick(self, world):
+        for _action in self.controller.get_actions(self, world):
+            self.perform_action(_action)
         self.current_velocity += self.acceleration
         dx = self.current_velocity.x + 0.5 * self.acceleration.x
         self.rect.x += dx
@@ -93,6 +97,6 @@ class Agent(objects.object.Drawable):
 
 
 class PlayerAgent(Agent):
-    def __init__(self, x: float, y: float, width: float, height: float, sprite=None):
-        Agent.__init__(self, x, y, width, height, sprite)
+    def __init__(self, x, y, width, height, controller):
+        Agent.__init__(self, x, y, width, height, controller, sprites.mario)
         self._type = 'Player'
