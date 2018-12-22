@@ -7,6 +7,7 @@ import world
 class Game:
     def __init__(self):
         pygame.init()
+        pygame.font.init()
         self.win = pygame.display.set_mode((config.__WIDTH__, config.__HEIGHT__))
         pygame.display.set_caption("marIO")
         sprites.setup()

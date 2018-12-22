@@ -52,7 +52,7 @@ class World:
             block = objects.object.Block(floor_x, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__)
             self.platforms.add(block)
             self.sprites.add(block)
-            if random.random() < 0.1:
+            if random.random() < 0.1 and i < self.block_length - config.__SAFE_LAST_BLOCKS__:
                 floor_x += 3 * config.__BLOCK_SIZE__
             else:
                 floor_x += config.__BLOCK_SIZE__
@@ -104,3 +104,7 @@ class World:
             world_rect = pygame.Rect((self.view_x, 0, self.width, self.height))
             if sprite.rect.colliderect(world_rect):
                 sprite.draw(win, self.view_x)
+
+        myfont = pygame.font.SysFont('Comic Sans MS', 30)
+        textsurface = myfont.render(str(self.score), False, (255, 255, 255))
+        win.blit(textsurface, (10, 5))
