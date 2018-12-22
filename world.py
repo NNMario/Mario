@@ -14,10 +14,16 @@ ACTION_JUMP = 3
 
 
 class World:
+    """ The state keeper, has all the information about the world, including
+    agents, platforms, world sizes, viewport position, player, etc.
+    At each loop of the game, the world gets updated
+
+    """
     def __init__(self, bounds, player_controller):
-        self.sprites = pygame.sprite.Group()
-        self.subjects = pygame.sprite.Group()
-        self.platforms = pygame.sprite.Group()
+        # Groups define similar objects and have their purpose
+        self.sprites = pygame.sprite.Group()  # Used for drawing everything
+        self.agents = pygame.sprite.Group()  # Used for making actions on each subject
+        self.platforms = pygame.sprite.Group()  # Used to generate rewards on the right place
         self.lose_triggers = pygame.sprite.Group()  # Will make the player lose on collide
         self.bounds = bounds
         self.width, self.height = bounds
@@ -36,7 +42,7 @@ class World:
         )
         self.player_subject.set_velocity(3, 10)
         self.player_subject.set_acceleration(0, config.__GRAVITY__)
-        self.subjects.add(self.player_subject)
+        self.agents.add(self.player_subject)
         self.sprites.add(self.player_subject)
 
         self.ended = False
@@ -45,6 +51,14 @@ class World:
         self.score = 0
 
     def generate(self):
+        """ Instantiate all the blocks, enemies, rewards
+        The world with should be chosen at random and is given by the block_length variable
+        0. All the floor blocks with random gaps of length 2
+        1. Under the floor blocks, there is a kill_block object, that will make the player lose on contact
+        2. The princess, which is the reward object, gets placed in the last 10 blocks, the won't have any gaps
+
+        :return: None
+        """
         self.block_length = 100  # random.randint(400, 1000)
 
         # Add the floor platforms
@@ -78,7 +92,11 @@ class World:
         self.sprites.add(princess)
 
     def tick(self):
-        for subject in self.subjects:
+        """ Update every object, viewport and score
+        Checks if the player has hit a lose_trigger object. In the case, the game ends
+        :return: None
+        """
+        for subject in self.agents:
             subject.tick(self)
             subject.update()
 
@@ -98,10 +116,20 @@ class World:
         self.ended = True
 
     def calculate_score(self):
+        """ Score consists of the maximum X value that the player has been on
+        added to the weighted amount of counts collected
+        :return: None
+        """
         self.max_x = max(self.max_x, self.player_subject.rect.x)
-        self.score = self.max_x + self.coins
+        self.score = self.max_x + 100 * self.coins
 
     def draw(self, win):
+        """ Draw everything that is inside the viewport
+        Also draws the score
+
+        :param win: pygame screen instance
+        :return: None
+        """
         for sprite in self.sprites:
             world_rect = pygame.Rect((self.view_x, 0, self.width, self.height))
             if sprite.rect.colliderect(world_rect):

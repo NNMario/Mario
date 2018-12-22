@@ -4,12 +4,17 @@ import sprites
 
 
 class SimpleObject(pygame.sprite.Sprite):
+    """ This sprite won't be drawn, but has to be in some group
+    For ex: kill_block
+    """
     def __init__(self, x, y, width, height):
         pygame.sprite.Sprite.__init__(self)
-        self.rect = pygame.Rect((x,y,width, height))
+        self.rect = pygame.Rect((x, y, width, height))
 
 
 class Drawable(pygame.sprite.Sprite):
+    """ This sprite will be drawn, it gets a sprite parameter (from the sprites module)
+    """
     def __init__(self, x, y, width, height, sprite=None):
         pygame.sprite.Sprite.__init__(self)
         self.image = sprite
