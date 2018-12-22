@@ -3,8 +3,14 @@ import config
 import sprites
 
 
+class SimpleObject(pygame.sprite.Sprite):
+    def __init__(self, x, y, width, height):
+        pygame.sprite.Sprite.__init__(self)
+        self.rect = pygame.Rect((x,y,width, height))
+
+
 class Drawable(pygame.sprite.Sprite):
-    def __init__(self, x, y, width, height, sprite):
+    def __init__(self, x, y, width, height, sprite=None):
         pygame.sprite.Sprite.__init__(self)
         self.image = sprite
         self.image = pygame.transform.scale(self.image, (width, height))
