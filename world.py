@@ -42,6 +42,8 @@ class World:
 
     def generate(self):
         self.block_length = random.randint(400, 1000)
+
+        # Add the floor platforms
         floor_x = 0
         floor_y = self.height - config.__BLOCK_SIZE__
         for i in range(self.block_length):
@@ -53,6 +55,7 @@ class World:
             else:
                 floor_x += config.__BLOCK_SIZE__
 
+        # Add sprites that make the player lose on collision
         kill_block = objects.object.SimpleObject(
             0,
             self.height,
@@ -60,12 +63,6 @@ class World:
             50,
         )
         self.lose_triggers.add(kill_block)
-
-        # block = objects.object.Block(60, self.height - config.__BLOCK_SIZE__ - 50, config.__BLOCK_SIZE__,
-        # config.__BLOCK_SIZE__)
-
-        # self.objects.add(block)
-        # self.sprites.add(block)
 
     def tick(self):
         for subject in self.subjects:

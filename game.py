@@ -1,17 +1,16 @@
 import pygame
 import config
-import copy
-
-pygame.init()
-win = pygame.display.set_mode((config.__WIDTH__, config.__HEIGHT__))
-pygame.display.set_caption("marIO")
-
 import sprites
 import world
 
 
 class Game:
     def __init__(self):
+        pygame.init()
+        self.win = pygame.display.set_mode((config.__WIDTH__, config.__HEIGHT__))
+        pygame.display.set_caption("marIO")
+        sprites.setup()
+
         self.run = True
         self.w_height = config.__HEIGHT__
         self.w_width = config.__WIDTH__
@@ -19,8 +18,8 @@ class Game:
         sprites.background = pygame.transform.scale(sprites.background, (self.w_width, self.w_height))
 
     def draw(self):
-        win.blit(sprites.background, (0, 0))
-        self.world.draw(win)
+        self.win.blit(sprites.background, (0, 0))
+        self.world.draw(self.win)
 
     def start(self):
         while self.run:

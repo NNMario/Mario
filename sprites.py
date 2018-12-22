@@ -41,7 +41,15 @@ class Spritesheet(object):
         return self.images_at(tups, colorkey)
 
 
-background = pygame.image.load('sprites/background.png')
-sprites = Spritesheet('sprites/spritesheet.png')
-block = sprites.image_at((669, 533, 30, 30), colorkey=(255, 255, 255))
-mario = sprites.image_at((225, 8, 15, 13), colorkey=(255, 255, 255))
+background = None
+sprites = None
+block = None
+mario = None
+
+
+def setup():
+    global background, sprites, block, mario
+    background = pygame.image.load('sprites/background.png')
+    sprites = Spritesheet('sprites/spritesheet.png')
+    block = sprites.image_at((669, 533, 30, 30), colorkey=(255, 255, 255))
+    mario = sprites.image_at((225, 8, 15, 13), colorkey=(255, 255, 255))
