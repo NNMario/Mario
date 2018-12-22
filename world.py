@@ -2,8 +2,8 @@ import random
 
 import pygame
 import config
-import objects.agent
-import objects.object
+from agents.player_agent import PlayerAgent
+from objects.object import SimpleObject, Block, Drawable
 import sprites
 import controllers.player_controller
 
@@ -33,7 +33,7 @@ class World:
         self.player_controller = player_controller
         player_x = 0
         player_y = self.height - config.__BLOCK_SIZE__ - config.__PLAYER_HEIGHT__
-        self.player_subject = objects.agent.PlayerAgent(
+        self.player_subject = PlayerAgent(
             player_x,
             player_y,
             config.__PLAYER_WIDTH__,
@@ -65,7 +65,7 @@ class World:
         floor_x = 0
         floor_y = self.height - config.__BLOCK_SIZE__
         for i in range(self.block_length):
-            block = objects.object.Block(floor_x, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__)
+            block = Block(floor_x, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__)
             self.platforms.add(block)
             self.sprites.add(block)
             if random.random() < 0.1 and i < self.block_length - config.__SAFE_LAST_BLOCKS__:
@@ -74,7 +74,7 @@ class World:
                 floor_x += config.__BLOCK_SIZE__
 
         # Add sprites that make the player lose on collision
-        kill_block = objects.object.SimpleObject(
+        kill_block = SimpleObject(
             0,
             self.height,
             self.block_length * config.__BLOCK_SIZE__,
@@ -82,7 +82,7 @@ class World:
         )
         self.lose_triggers.add(kill_block)
 
-        princess = objects.object.Drawable(
+        princess = Drawable(
             (self.block_length - 10) * config.__BLOCK_SIZE__,
             floor_y - config.__PRINCESS_HEIGHT__,
             config.__PRINCESS_WIDTH__,

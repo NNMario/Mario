@@ -94,9 +94,3 @@ class Agent(objects.object.Drawable):
         new_rect = self.rect.copy()
         new_rect.x -= view_x
         win.blit(self.image, new_rect)
-
-
-class PlayerAgent(Agent):
-    def __init__(self, x, y, width, height, controller):
-        Agent.__init__(self, x, y, width, height, controller, sprites.mario)
-        self._type = 'Player'
