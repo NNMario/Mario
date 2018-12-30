@@ -7,3 +7,6 @@ class Controller:
 
     def get_actions(self, agent, world):
         pass
+
+    def done(self):
+        pass

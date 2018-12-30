@@ -2,8 +2,10 @@ import pygame
 import config
 import sprites
 import world
+from copy import deepcopy
 from controllers.player_controller import RandomController
 from controllers.player_controller import KeyBoardController
+from controllers.q_learn_nn import DeepQLearning
 
 
 class Game:
@@ -19,6 +21,9 @@ class Game:
         self.run = True
         self.w_height = config.__HEIGHT__
         self.w_width = config.__WIDTH__
+        self.ticks = 0
+        self.episodes = 0
+        self.max_ticks = 1500
         self.world = None
         sprites.background = pygame.transform.scale(sprites.background, (self.w_width, self.w_height))
 
@@ -38,19 +43,22 @@ class Game:
         :return: None
         """
         # There can be multiple runs of the game, but if we press X -> it's ending
+
+        # The player agent will be controlled by this
+        current_controller = DeepQLearning(world.actions)  # KeyBoardController()
         while self.run:
-            # The player agent will be controlled by the keyboard
-            current_controller = KeyBoardController()
+            self.episodes += 1
+            print(self.episodes)
 
             # Initialize the game world
-            self.world = world.World((self.w_width, self.w_height), current_controller)
+            self.world = world.World((self.w_width, self.w_height), None)
             # Generate all the blocks, enemies
-            self.world.generate()
-
+            self.world.generate(current_controller)
+            self.ticks = 0
             while self.run and not self.world.ended:
                 clock = pygame.time.Clock()
                 # Keep the game at 60 fps
-                clock.tick_busy_loop(config.__FPS__)
+                # clock.tick_busy_loop(config.__FPS__)
 
                 # poll events, see if we exit the game
                 for event in pygame.event.get():
@@ -58,9 +66,9 @@ class Game:
                         self.run = False
                         print('exit')
 
+                keys_list = pygame.key.get_pressed()
                 # If the player is controlled by keyboard, poll the keys and give actions
                 if isinstance(current_controller, KeyBoardController):
-                    keys_list = pygame.key.get_pressed()
                     actions = []
                     if keys_list[pygame.K_a]:
                         # keyboard.current_action = world.ACTION_BACK
@@ -75,13 +83,23 @@ class Game:
                     if actions:
                         current_controller.current_actions = actions
                     else:
-                        current_controller.current_actions = [ world.ACTION_NONE ]
+                        current_controller.current_actions = [world.ACTION_NONE]
+                if keys_list[pygame.K_RIGHT]:
+                    config.__FPS__ += 20
+                elif keys_list[pygame.K_LEFT]:
+                    config.__FPS__ -= 20
 
                 # Tick the world and every object in it
                 self.world.tick()
+                self.ticks += 1
                 # Draw everything
-                self.draw()
-                pygame.display.update()
+                if self.episodes % 10 == 0:
+                    pass
+                    self.draw()
+                    pygame.display.update()
+                if self.ticks > self.max_ticks:
+                    break
+            current_controller.done()
 
         pygame.quit()
 

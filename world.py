@@ -12,6 +12,13 @@ ACTION_FORWARD = 1
 ACTION_BACK = 2
 ACTION_JUMP = 3
 
+actions = [
+    ACTION_NONE,
+    ACTION_FORWARD,
+    ACTION_BACK,
+    ACTION_JUMP
+]
+
 
 class World:
     """ The state keeper, has all the information about the world, including
@@ -19,38 +26,46 @@ class World:
     At each loop of the game, the world gets updated
 
     """
+
     def __init__(self, bounds, player_controller):
         # Groups define similar objects and have their purpose
         self.sprites = pygame.sprite.Group()  # Used for drawing everything
         self.agents = pygame.sprite.Group()  # Used for making actions on each subject
         self.platforms = pygame.sprite.Group()  # Used to generate rewards on the right place
         self.lose_triggers = pygame.sprite.Group()  # Will make the player lose on collide
+        self.gaps = pygame.sprite.Group()
+
         self.bounds = bounds
         self.width, self.height = bounds
         self.view_x = 0
         self.block_length = 0
+        self.ground_height = self.height - config.__BLOCK_SIZE__
 
-        self.player_controller = player_controller
-        player_x = 0
-        player_y = self.height - config.__BLOCK_SIZE__ - config.__PLAYER_HEIGHT__
-        self.player_subject = PlayerAgent(
-            player_x,
-            player_y,
-            config.__PLAYER_WIDTH__,
-            config.__PLAYER_HEIGHT__,
-            self.player_controller
-        )
-        self.player_subject.set_velocity(3, 10)
-        self.player_subject.set_acceleration(0, config.__GRAVITY__)
-        self.agents.add(self.player_subject)
-        self.sprites.add(self.player_subject)
+        self.player_agent = None
+        self.princess = None
 
         self.ended = False
+        self.is_win = True
         self.max_x = 0
         self.coins = 0
         self.score = 0
 
-    def generate(self):
+    def create_agents(self, player_controller):
+        player_x = 0
+        player_y = self.ground_height - config.__PLAYER_HEIGHT__
+        self.player_agent = PlayerAgent(
+            player_x,
+            player_y,
+            config.__PLAYER_WIDTH__,
+            config.__PLAYER_HEIGHT__,
+            player_controller
+        )
+        self.player_agent.set_velocity(3, 10)
+        self.player_agent.set_acceleration(0, config.__GRAVITY__)
+        self.agents.add(self.player_agent)
+        self.sprites.add(self.player_agent)
+
+    def generate(self, player_controller):
         """ Instantiate all the blocks, enemies, rewards
         The world with should be chosen at random and is given by the block_length variable
         0. All the floor blocks with random gaps of length 2
@@ -59,8 +74,7 @@ class World:
 
         :return: None
         """
-        self.block_length = 100  # random.randint(400, 1000)
-
+        self.block_length = 200  # random.randint(400, 1000)
         # Add the floor platforms
         floor_x = 0
         floor_y = self.height - config.__BLOCK_SIZE__
@@ -68,7 +82,13 @@ class World:
             block = Block(floor_x, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__)
             self.platforms.add(block)
             self.sprites.add(block)
-            if random.random() < 0.1 and i < self.block_length - config.__SAFE_LAST_BLOCKS__:
+            if random.random() < 0.2 and i < self.block_length - config.__SAFE_LAST_BLOCKS__:
+                gap = SimpleObject(floor_x + config.__BLOCK_SIZE__, floor_y, config.__BLOCK_SIZE__,
+                                   config.__BLOCK_SIZE__)
+                self.gaps.add(gap)
+                gap = SimpleObject(floor_x + 2 * config.__BLOCK_SIZE__, floor_y, config.__BLOCK_SIZE__,
+                                   config.__BLOCK_SIZE__)
+                self.gaps.add(gap)
                 floor_x += 3 * config.__BLOCK_SIZE__
             else:
                 floor_x += config.__BLOCK_SIZE__
@@ -82,14 +102,15 @@ class World:
         )
         self.lose_triggers.add(kill_block)
 
-        princess = Drawable(
+        self.princess = Drawable(
             (self.block_length - 10) * config.__BLOCK_SIZE__,
             floor_y - config.__PRINCESS_HEIGHT__,
             config.__PRINCESS_WIDTH__,
             config.__PRINCESS_HEIGHT__,
             sprites.princess
         )
-        self.sprites.add(princess)
+        self.sprites.add(self.princess)
+        self.create_agents(player_controller)
 
     def tick(self):
         """ Update every object, viewport and score
@@ -100,13 +121,18 @@ class World:
             subject.tick(self)
             subject.update()
 
-        hits = pygame.sprite.spritecollide(self.player_subject, self.lose_triggers, False)
+        hits = pygame.sprite.spritecollide(self.player_agent, self.lose_triggers, False)
         if hits:
             self.end()
             return
 
+        hits = self.player_agent.rect.colliderect(self.princess.rect)
+        if hits:
+            self.win()
+            return
+
         center_x = self.view_x + self.width / 2.0
-        dx = self.player_subject.rect.x - center_x
+        dx = self.player_agent.rect.x - center_x
         if dx > 0 and self.view_x + self.width < self.block_length * config.__BLOCK_SIZE__:
             self.view_x += dx
 
@@ -114,13 +140,19 @@ class World:
 
     def end(self):
         self.ended = True
+        self.is_win = False
+
+    def win(self):
+        self.ended = True
+        self.is_win = True
 
     def calculate_score(self):
         """ Score consists of the maximum X value that the player has been on
         added to the weighted amount of counts collected
         :return: None
         """
-        self.max_x = max(self.max_x, self.player_subject.rect.x)
+        # self.max_x = max(self.max_x, self.player_agent.rect.x)
+        self.max_x = self.player_agent.rect.x
         self.score = self.max_x + 100 * self.coins
 
     def draw(self, win):

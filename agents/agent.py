@@ -3,32 +3,40 @@ import helpers
 import world
 import objects.object
 import sprites
-
+import numpy as np
 
 class Agent(objects.object.Drawable):
     def __init__(self, x, y, width, height, controller, sprite=None):
         objects.object.Drawable.__init__(self, x, y, width, height, sprite)
 
-        self.velocity = helpers.Vec2d(0, 0)
+        self._velocity = helpers.Vec2d(0, 0)
         self.current_velocity = helpers.Vec2d(0, 0)
         self.acceleration = helpers.Vec2d(0, 0)
         self.is_jump = False
         self._type = None
         self.controller = controller
 
+    @property
+    def position(self):
+        return np.array([self.rect.x, self.rect.y])
+
+    @property
+    def velocity(self):
+        return np.array([self.current_velocity.x, self.current_velocity.y])
+
     def perform_action(self, action):
         if action == world.ACTION_NONE:
             self.current_velocity.x = 0
             self.acceleration.x = 0
         elif action == world.ACTION_BACK:
-            self.current_velocity.x = self.velocity.x * -1
+            self.current_velocity.x = self._velocity.x * -1
         elif action == world.ACTION_FORWARD:
-            self.current_velocity.x = self.velocity.x
+            self.current_velocity.x = self._velocity.x
         elif action == world.ACTION_JUMP:
             self._jump()
 
     def set_velocity(self, vx, vy):
-        self.velocity = helpers.Vec2d(vx, vy)
+        self._velocity = helpers.Vec2d(vx, vy)
 
     def set_acceleration(self, ax, ay):
         self.acceleration = helpers.Vec2d(ax, ay)
@@ -36,7 +44,7 @@ class Agent(objects.object.Drawable):
     def _jump(self):
         if not self.is_jump:
             self.is_jump = True
-            self.current_velocity.y = -1 * self.velocity.y
+            self.current_velocity.y = -1 * self._velocity.y
             # self.rect.x += 1
             # hits = pg.sprite.spritecollide(self, self.game.platforms, False)
             # self.rect.x -= 1
@@ -79,7 +87,7 @@ class Agent(objects.object.Drawable):
             self.current_velocity.y = 0
             self.rect.y = 0
 
-        hits = pygame.sprite.spritecollide(self, world.sprites, False)
+        hits = pygame.sprite.spritecollide(self, world.platforms, False)
         for hit in hits:
             if hit != self:
                 if dy > 0:
