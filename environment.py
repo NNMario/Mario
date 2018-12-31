@@ -5,15 +5,15 @@ import pygame
 import config
 from agents.player_agent import PlayerAgent
 
-ACTION_NONE = 0
-ACTION_FORWARD = 1
+ACTION_NONE = 3
+ACTION_FORWARD = 0
 ACTION_BACK = 2
-ACTION_JUMP = 3
+ACTION_JUMP = 1
 
 actions = [
-    ACTION_NONE,
+    #ACTION_NONE,
     ACTION_FORWARD,
-    ACTION_BACK,
+   # ACTION_BACK,
     ACTION_JUMP
 ]
 
@@ -24,9 +24,10 @@ class Environment:
     At each loop of the game, the world gets updated
 
     """
-    def __init__(self, width, height):
-        self.width = width  # Irrelevant, will be recalculated upon generation
-        self.height = height
+    def __init__(self, w_width, w_height):
+        self.width = w_width  # Irrelevant, will be recalculated upon generation
+        self.w_width = w_width
+        self.height = w_height
         self.block_length = 0
         self.ground_height = self.height - config.__BLOCK_SIZE__
 
@@ -58,22 +59,6 @@ class Environment:
 
     def snapshot(self):
         return deepcopy(self)
-        """
-        return {
-            'agents': deepcopy(self.agents),
-            'platforms': deepcopy(self.platforms),
-            'lose_triggers': deepcopy(self.lose_triggers),
-            'gaps': deepcopy(self.gaps),
-            'player': self.player_agent.rect.copy(),
-            'princess': self.princess.rect.copy(),
-            'ground_height' : self.ground_height,
-            'block_length': self.block_length,
-            'height': self.height,
-            'width': self.width,
-            'win': self.is_win,
-            'ended': self.ended
-        }
-        """
 
     def _generate(self):
         """ Instantiate all the blocks, enemies, rewards
@@ -134,9 +119,9 @@ class Environment:
         for agent in self.agents:
             agent.tick(self)
 
-        center_x = self.viewport_x + self.width / 2.0
+        center_x = self.viewport_x + self.w_width / 2.0
         dx = self.player_agent.rect.x - center_x
-        if dx > 0 and self.viewport_x + self.width < self.block_length * config.__BLOCK_SIZE__:
+        if dx > 0 and self.viewport_x + self.w_width < self.width:
             self.viewport_x += dx
 
         for trigger in self.lose_triggers:

@@ -7,13 +7,6 @@ from keras.models import Sequential
 import environment
 from controllers.controller import Controller
 
-ACTION_LEFT_JUMP = 0
-ACTION_LEFT_NO_JUMP = 1
-ACTION_RIGHT_JUMP = 2
-ACTION_RIGHT_NO_JUMP = 3
-ACTION_STAY_JUMP = 4
-ACTION_STAY_NO_JUMP = 5
-
 
 def distance(obj1, obj2):
     return math.sqrt((obj1.x - obj2.x) ** 2 + (obj2.y - obj2.y) ** 2)
@@ -27,7 +20,7 @@ class DeepQLearning(Controller):
         self.epsilon_minimum = 0.01
         self.alpha = alpha
         self.gamma = gamma
-        self.batch_size = 32
+        self.batch_size = 1000
         self.world = environment
         self.actions = actions
 
@@ -38,7 +31,7 @@ class DeepQLearning(Controller):
 
         self.state_len = 7
         self.model = Sequential([
-            Dense(50, input_shape=(self.state_len,)),
+            Dense(150, input_shape=(self.state_len,)),
             Activation('relu'),
             Dense(len(self.actions)),
             Activation('linear')
@@ -53,7 +46,7 @@ class DeepQLearning(Controller):
         cnt = 0
         for gap in env.gaps:
             if gap.x < env.player_agent.rect.x: cnt += 1
-            #if collide_rect.colliderect(gap):
+            # if collide_rect.colliderect(gap):
             #    return distance(env.player_agent.rect, gap)
         return cnt
 
@@ -61,10 +54,10 @@ class DeepQLearning(Controller):
         dx = env.player_agent.rect.x - old_env.player_agent.rect.x
         score = 0
         if dx > 0:
-            score += 10
+            score += 50
         else:
             score -= 50
-        score += 20 * self.passed_gaps(env)
+        score += 100 * self.passed_gaps(env)
 
         if env.ended and not env.is_win:
             score -= 500
@@ -83,6 +76,7 @@ class DeepQLearning(Controller):
                 max_q_for_state_2 = np.amax(self.getQ(state2))
                 target = reward + self.gamma * max_q_for_state_2
                 q_for_state_1 = self.getQ(state1)
+                print(action)
                 q_for_state_1[action] = target
                 self.model.fit(state1.reshape(1, -1), q_for_state_1.reshape(1, -1), verbose=0)
 

@@ -84,7 +84,7 @@ class Game:
 
                 self.ticks += 1
                 # Draw everything
-                if self.episodes % 10 == 0:
+                if self.episodes % 10 == 0 or current_controller.epsilon < 0.01:
                     self.drawer.draw(self.environment)
 
                 if self.ticks > self.max_ticks:
