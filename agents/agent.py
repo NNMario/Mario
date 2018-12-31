@@ -1,20 +1,19 @@
 import pygame
 import helpers
-import world
+import environment
 import objects.object
-import sprites
 import numpy as np
 
+
 class Agent(objects.object.Drawable):
-    def __init__(self, x, y, width, height, controller, sprite=None):
-        objects.object.Drawable.__init__(self, x, y, width, height, sprite)
+    def __init__(self, x, y, width, height):
+        objects.object.Drawable.__init__(self, x, y, width, height)
 
         self._velocity = helpers.Vec2d(0, 0)
         self.current_velocity = helpers.Vec2d(0, 0)
         self.acceleration = helpers.Vec2d(0, 0)
         self.is_jump = False
         self._type = None
-        self.controller = controller
 
     @property
     def position(self):
@@ -25,14 +24,14 @@ class Agent(objects.object.Drawable):
         return np.array([self.current_velocity.x, self.current_velocity.y])
 
     def perform_action(self, action):
-        if action == world.ACTION_NONE:
+        if action == environment.ACTION_NONE:
             self.current_velocity.x = 0
             self.acceleration.x = 0
-        elif action == world.ACTION_BACK:
+        elif action == environment.ACTION_BACK:
             self.current_velocity.x = self._velocity.x * -1
-        elif action == world.ACTION_FORWARD:
+        elif action == environment.ACTION_FORWARD:
             self.current_velocity.x = self._velocity.x
-        elif action == world.ACTION_JUMP:
+        elif action == environment.ACTION_JUMP:
             self._jump()
 
     def set_velocity(self, vx, vy):
@@ -52,53 +51,43 @@ class Agent(objects.object.Drawable):
     def _stop_jump(self):
         self.is_jump = False
 
-    def tick(self, world):
-        for _action in self.controller.get_actions(self, world):
-            self.perform_action(_action)
+    def tick(self, env):
         self.current_velocity += self.acceleration
         dx = self.current_velocity.x + 0.5 * self.acceleration.x
         self.rect.x += dx
 
         # Fix collisions
-        w_width, w_height = world.bounds
-        if self.rect.x + self.rect.width > world.view_x + world.width and self.current_velocity.x > 0:
-            self.rect.left = world.view_x + world.width - self.rect.width
+        if self.rect.x + self.rect.width > env.viewport_x + env.width and self.current_velocity.x > 0:
+            self.rect.left = env.viewport_x + env.width - self.rect.width
             self.current_velocity.x = 0
-        elif self.rect.x <= world.view_x and self.current_velocity.x < 0:
+        elif self.rect.x <= env.viewport_x and self.current_velocity.x < 0:
             self.current_velocity.x = 0
-            self.rect.left = world.view_x
+            self.rect.left = env.viewport_x
 
-        hits = pygame.sprite.spritecollide(self, world.sprites, False)
-        for hit in hits:
-            if hit != self:
+        for platform in env.platforms:
+            if platform.colliderect(self.rect):
                 if dx > 0:
-                    self.rect.right = hit.rect.left
+                    self.rect.right = platform.left
                     self.current_velocity.x = 0
                 else:
-                    self.rect.left = hit.rect.right
+                    self.rect.left = platform.right
                     self.current_velocity.x = 0
 
         dy = self.current_velocity.y + 0.5 * self.acceleration.y
         self.rect.y += dy
-        if self.rect.y + self.rect.height > w_height and self.current_velocity.y < 0:
-            self.rect.y = w_height - self.rect.height
+        if self.rect.y + self.rect.height > env.height and self.current_velocity.y < 0:
+            self.rect.y = env.height - self.rect.height
             self.current_velocity.y = 0
         elif self.rect.y < 0 and self.current_velocity.y > 0:
             self.current_velocity.y = 0
             self.rect.y = 0
 
-        hits = pygame.sprite.spritecollide(self, world.platforms, False)
-        for hit in hits:
-            if hit != self:
+        for platform in env.platforms:
+            if platform.colliderect(self.rect):
                 if dy > 0:
-                    self.rect.bottom = hit.rect.top
+                    self.rect.bottom = platform.top
                     self.current_velocity.y = 0
                     self._stop_jump()
                 else:
-                    self.rect.top = hit.rect.bottom
+                    self.rect.top = platform.bottom
                     self.current_velocity.y = 0
-
-    def draw(self, win, view_x=0):
-        new_rect = self.rect.copy()
-        new_rect.x -= view_x
-        win.blit(self.image, new_rect)

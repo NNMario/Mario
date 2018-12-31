@@ -17,3 +17,5 @@ __HEIGHT__ = 300
 __WIDTH__ = 700
 __SAFE_LAST_BLOCKS__ = 10
 __FPS__ = 60
+
+__MAX_TICKS__ = 1500

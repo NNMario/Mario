@@ -1,10 +1,8 @@
-import pygame
-import helpers
-import world
 from agents.agent import Agent
-import sprites
+from graphics import sprites
+
 
 class PlayerAgent(Agent):
-    def __init__(self, x, y, width, height, controller):
-        Agent.__init__(self, x, y, width, height, controller, sprites.mario)
+    def __init__(self, x, y, width, height):
+        Agent.__init__(self, x, y, width, height)
         self._type = 'Player'

@@ -1,39 +1,23 @@
 import pygame
 import config
-import sprites
-import world
-from copy import deepcopy
-from controllers.player_controller import RandomController
 from controllers.player_controller import KeyBoardController
 from controllers.q_learn_nn import DeepQLearning
+from draw import Drawer
+from environment import Environment
+from environment import actions as Actions
 
 
 class Game:
     def __init__(self):
         # Init all the components
-        pygame.init()
-        pygame.font.init()
-        self.win = pygame.display.set_mode((config.__WIDTH__, config.__HEIGHT__))
-        pygame.display.set_caption("marIO")
-        # Create all the game sprites from the spritesheet
-        sprites.setup()
-
+        self.width = config.__WIDTH__
+        self.height = config.__HEIGHT__
         self.run = True
-        self.w_height = config.__HEIGHT__
-        self.w_width = config.__WIDTH__
         self.ticks = 0
         self.episodes = 0
-        self.max_ticks = 1500
-        self.world = None
-        sprites.background = pygame.transform.scale(sprites.background, (self.w_width, self.w_height))
-
-    def draw(self):
-        """ Draws the background image and initiates drawing of
-        all the objects in the game
-        :return: None
-        """
-        self.win.blit(sprites.background, (0, 0))
-        self.world.draw(self.win)
+        self.max_ticks = config.__MAX_TICKS__
+        self.drawer = Drawer(self.width, self.height)
+        self.environment = Environment(self.width, self.height)
 
     def start(self):
         """ Gameloop function, resets the game if it is ended and closes the window if the user pressed X
@@ -45,17 +29,14 @@ class Game:
         # There can be multiple runs of the game, but if we press X -> it's ending
 
         # The player agent will be controlled by this
-        current_controller = DeepQLearning(world.actions)  # KeyBoardController()
+        current_controller = DeepQLearning(Actions)  # KeyBoardController()
         while self.run:
             self.episodes += 1
             print(self.episodes)
-
-            # Initialize the game world
-            self.world = world.World((self.w_width, self.w_height), None)
             # Generate all the blocks, enemies
-            self.world.generate(current_controller)
+            self.environment.generate()
             self.ticks = 0
-            while self.run and not self.world.ended:
+            while self.run and not self.environment.ended:
                 clock = pygame.time.Clock()
                 # Keep the game at 60 fps
                 # clock.tick_busy_loop(config.__FPS__)
@@ -72,36 +53,45 @@ class Game:
                     actions = []
                     if keys_list[pygame.K_a]:
                         # keyboard.current_action = world.ACTION_BACK
-                        actions.append(world.ACTION_BACK)
+                        actions.append(Actions.ACTION_BACK)
                     if keys_list[pygame.K_d]:
                         # keyboard.current_action = world.ACTION_FORWARD
-                        actions.append(world.ACTION_FORWARD)
+                        actions.append(Actions.ACTION_FORWARD)
                     if keys_list[pygame.K_SPACE]:
                         # keyboard.current_action = world.ACTION_JUMP
-                        actions.append(world.ACTION_JUMP)
+                        actions.append(Actions.ACTION_JUMP)
 
                     if actions:
                         current_controller.current_actions = actions
                     else:
-                        current_controller.current_actions = [world.ACTION_NONE]
+                        current_controller.current_actions = [Actions.ACTION_NONE]
                 if keys_list[pygame.K_RIGHT]:
                     config.__FPS__ += 20
                 elif keys_list[pygame.K_LEFT]:
                     config.__FPS__ -= 20
-
                 # Tick the world and every object in it
-                self.world.tick()
+
+                current_state = self.environment.snapshot()
+                # Get action
+                player_action = current_controller.get_action(current_state)
+                # Advance
+                self.environment.tick(player_action)
+                # Get new state
+                reward = current_controller.reward(self.environment, current_state)
+                self.environment.score = reward
+                # Save the state transition
+                current_controller.remember(current_state, player_action, reward, self.environment)
+
                 self.ticks += 1
                 # Draw everything
                 if self.episodes % 10 == 0:
-                    pass
-                    self.draw()
-                    pygame.display.update()
+                    self.drawer.draw(self.environment)
+
                 if self.ticks > self.max_ticks:
                     break
             current_controller.done()
 
-        pygame.quit()
+        self.drawer.uninit()
 
 
 def main():
