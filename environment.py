@@ -13,7 +13,9 @@ ACTION_JUMP = 1
 actions = [
     # ACTION_NONE,
     ACTION_FORWARD,
-    ACTION_JUMP
+    ACTION_JUMP,
+    ACTION_BACK,
+    ACTION_NONE
 ]
 
 
@@ -35,10 +37,12 @@ class Environment:
         self.platforms = []  # Used to generate rewards on the right place
         self.lose_triggers = []  # Will make the player lose on collide
         self.gaps = []
+        self.coins = []
         self.player_agent = None
         self.princess = None
         self.ended = False
         self.is_win = False
+        self.got_coin = False
         self.score = 0
         self.viewport_x = 0
 
@@ -47,9 +51,11 @@ class Environment:
         self.platforms.clear()
         self.lose_triggers.clear()
         self.gaps.clear()
+        self.coins.clear()
 
         self.ended = False
         self.is_win = False
+        self.got_coin = False
         self.score = False
         self.player_agent = None
         self.princess = None
@@ -73,10 +79,12 @@ class Environment:
         # Add the floor platforms
         floor_x = 0
         floor_y = self.height - config.__BLOCK_SIZE__
+        last_x = 0
         for i in range(self.block_length):
             block = pygame.Rect((floor_x, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
             self.platforms.append(block)
-            if random.random() < 0.05 and i < self.block_length - config.__SAFE_LAST_BLOCKS__:
+            if random.random() < 0.15 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 3 * config.__BLOCK_SIZE__:
+                last_x = floor_x
                 gap = pygame.Rect((floor_x + config.__BLOCK_SIZE__, floor_y, config.__BLOCK_SIZE__,
                                    config.__BLOCK_SIZE__))
                 self.gaps.append(gap)
@@ -84,8 +92,21 @@ class Environment:
                                    config.__BLOCK_SIZE__))
                 self.gaps.append(gap)
                 floor_x += 3 * config.__BLOCK_SIZE__
+
             else:
                 floor_x += config.__BLOCK_SIZE__
+
+        platform_x = 0
+        while platform_x < self.width - 3:
+            if random.random() < 0.05:
+                platform_y = self.ground_height - random.choice(range(config.__PLAYER_HEIGHT__ + 5, 50, 5))
+                platform = pygame.Rect((platform_x, platform_y, 3 * config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
+                self.platforms.append(platform)
+
+                coin = pygame.Rect((platform_x + config.__BLOCK_SIZE__, platform_y - config.__BLOCK_SIZE__, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
+                self.coins.append(coin)
+
+            platform_x += 3 * config.__BLOCK_SIZE__
 
         # Add sprites that make the player lose on collision
         kill_block = pygame.Rect((0, self.height, self.block_length * config.__BLOCK_SIZE__, 50))
@@ -122,6 +143,15 @@ class Environment:
         dx = self.player_agent.rect.x - center_x
         if dx > 0 and self.viewport_x + self.w_width < self.width:
             self.viewport_x += dx
+
+        for coin in self.coins:
+            if self.player_agent.rect.colliderect(coin):
+                self.got_coin = True
+                self.coins.remove(coin)
+                break
+        else:
+            self.got_coin = False
+
 
         for trigger in self.lose_triggers:
             if self.player_agent.rect.colliderect(trigger):

@@ -4,9 +4,11 @@ from collections import deque
 import numpy as np
 from keras.layers import Dense, Activation
 from keras.models import Sequential
+from keras import initializers
 import environment
 from controllers.controller import Controller
 import config
+import matplotlib.pyplot as plt
 
 
 def distance(obj1, obj2):
@@ -21,7 +23,7 @@ class DeepQLearning(Controller):
         self.epsilon_minimum = 0.01
         self.alpha = alpha
         self.gamma = gamma
-        self.batch_size = 1000
+        self.batch_size = 200
         self.world = environment
         self.actions = actions
 
@@ -32,19 +34,28 @@ class DeepQLearning(Controller):
 
         self.state_len = 12
         self.model = Sequential([
-            Dense(100, input_shape=(self.state_len,)),
+            Dense(130, input_shape=(self.state_len,)),
             Activation('relu'),
             Dense(len(self.actions)),
             Activation('linear')
         ])
-        self.event_buffer = deque(maxlen=3000)
-        self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        self.event_buffer = deque(maxlen=10000)
+        self.model.compile(optimizer='rmsprop', loss='mse', metrics=['accuracy'])
+        self.episode_nr = 0
+        #fig = plt.figure()
+        #plt.axis([0, 1000, 0, 1])
+        #plt.show()
 
     def passed_gaps(self, env):
         for gap in env.gaps:
             if 20 > env.player_agent.rect.x - gap.right > 0 and not env.ended:
-                return 1
-        return 0
+                return True
+        return False
+
+    def got_coin(self, env):
+        for coin in env.coins:
+            if env.player_agent.rect.colliderect(coin): return True
+        return False
 
     def reward(self, env: environment.Environment, old_env: environment.Environment):
         dx = env.player_agent.rect.x - old_env.player_agent.rect.x
@@ -52,10 +63,11 @@ class DeepQLearning(Controller):
         score += env.player_agent.rect.x / 10
         if env.player_agent.current_velocity.x == 0 and env.player_agent.current_velocity.y == 0:
             score -= 200
-        if dx < 0:
-            score -= 200
         if self.passed_gaps(env):
             score += 100
+
+        if env.got_coin:
+            score += 1000
         # score += 10 * self.passed_gaps(env)
 
         if env.ended and not env.is_win:
@@ -80,7 +92,10 @@ class DeepQLearning(Controller):
                 q_for_state_1[action] = target
                 nn_input.append(state1)
                 nn_output.append(q_for_state_1)
-            self.model.fit(np.array(nn_input), np.array(nn_output), verbose=0, shuffle=True)
+            history = self.model.fit(np.array(nn_input), np.array(nn_output), verbose=0, shuffle=True)
+            print(history.history['acc'], history.history['loss'])
+            #print('ploting!')
+            #plt.plot(self.episode_nr, history.history['acc'])
 
         if self.epsilon > self.epsilon_minimum:
             # self.epsilon *= self.epsilon_decay
@@ -104,10 +119,10 @@ class DeepQLearning(Controller):
         self.last_action = action
         return action
 
-    def done(self):
+    def done(self, episode_nr=0):
+        self.episode_nr = episode_nr
         self.learn()
         print(self.epsilon)
-        self.event_buffer.clear()
 
     def get_state(self, env: environment.Environment):
         state = np.array([
@@ -168,7 +183,7 @@ class DeepQLearning(Controller):
             if gap.colliderect(player.third_rect):
                 state[8] = 1
 
-        state[6] = self.passed_gaps(env)
+        state[6] = 1 if self.passed_gaps(env) else 0
         state[9] = player.current_velocity.x
         state[10] = player.current_velocity.y
         return state

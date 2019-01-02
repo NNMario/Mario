@@ -50,6 +50,9 @@ class Drawer:
 
         self.draw_rect(env.princess, env.viewport_x, (200, 0, 0), 2)
 
+        for coin in env.coins:
+            self.draw_rect(coin, env.viewport_x, (222, 0, 0))
+
         myfont = pygame.font.SysFont('Comic Sans MS', 30)
         textsurface = myfont.render(str(env.score), False, (255, 255, 255))
         self.win.blit(textsurface, (10, 5))

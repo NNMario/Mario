@@ -5,6 +5,7 @@ from controllers.q_learn_nn import DeepQLearning
 from draw import Drawer
 from environment import Environment
 from environment import actions as Actions
+import environment
 
 
 class Game:
@@ -30,6 +31,7 @@ class Game:
 
         # The player agent will be controlled by this
         current_controller = DeepQLearning(Actions)  # KeyBoardController()
+        # current_controller = KeyBoardController()
         while self.run:
             self.episodes += 1
             print(self.episodes)
@@ -53,37 +55,41 @@ class Game:
                 if isinstance(current_controller, KeyBoardController):
                     actions = []
                     if keys_list[pygame.K_a]:
-                        # keyboard.current_action = world.ACTION_BACK
-                        actions.append(Actions.ACTION_BACK)
+                        actions.append(environment.ACTION_BACK)
                     if keys_list[pygame.K_d]:
                         # keyboard.current_action = world.ACTION_FORWARD
-                        actions.append(Actions.ACTION_FORWARD)
+                        actions.append(environment.ACTION_FORWARD)
                     if keys_list[pygame.K_SPACE]:
                         # keyboard.current_action = world.ACTION_JUMP
-                        actions.append(Actions.ACTION_JUMP)
+                        actions.append(environment.ACTION_JUMP)
 
                     if actions:
                         current_controller.current_actions = actions
                     else:
-                        current_controller.current_actions = [Actions.ACTION_NONE]
+                        current_controller.current_actions = [environment.ACTION_NONE]
                 if keys_list[pygame.K_RIGHT]:
                     config.__FPS__ += 20
                 elif keys_list[pygame.K_LEFT]:
                     config.__FPS__ -= 20
-                elif keys_list[pygame.K_d]:
+                elif keys_list[pygame.K_c]:
                     draw = True
                 # Tick the world and every object in it
 
                 current_state = self.environment.snapshot()
                 # Get action
-                player_action = current_controller.get_action(current_state)
-                # Advance
-                self.environment.tick(player_action)
-                # Get new state
-                reward = current_controller.reward(self.environment, current_state)
-                self.environment.score = reward
-                # Save the state transition
-                current_controller.remember(current_state, player_action, reward, self.environment)
+                if isinstance(current_controller, KeyBoardController):
+
+                    actions = current_controller.get_action(self.environment)
+                    for action in actions:
+                        self.environment.tick(action)
+                else:
+                    player_action = current_controller.get_action(self.environment)
+                    self.environment.tick(player_action)
+                    # Get new state
+                    reward = current_controller.reward(self.environment, current_state)
+                    self.environment.score = reward
+                    # Save the state transition
+                    current_controller.remember(current_state, player_action, reward, self.environment)
 
                 self.ticks += 1
                 # Draw everything
@@ -92,7 +98,7 @@ class Game:
 
                 if self.ticks > self.max_ticks:
                     break
-            current_controller.done()
+            current_controller.done(self.episodes)
 
         self.drawer.uninit()
 
