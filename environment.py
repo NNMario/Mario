@@ -11,9 +11,8 @@ ACTION_BACK = 2
 ACTION_JUMP = 1
 
 actions = [
-    #ACTION_NONE,
+    # ACTION_NONE,
     ACTION_FORWARD,
-   # ACTION_BACK,
     ACTION_JUMP
 ]
 
@@ -77,7 +76,7 @@ class Environment:
         for i in range(self.block_length):
             block = pygame.Rect((floor_x, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
             self.platforms.append(block)
-            if random.random() < 0.2 and i < self.block_length - config.__SAFE_LAST_BLOCKS__:
+            if random.random() < 0.05 and i < self.block_length - config.__SAFE_LAST_BLOCKS__:
                 gap = pygame.Rect((floor_x + config.__BLOCK_SIZE__, floor_y, config.__BLOCK_SIZE__,
                                    config.__BLOCK_SIZE__))
                 self.gaps.append(gap)

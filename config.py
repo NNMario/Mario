@@ -18,4 +18,8 @@ __WIDTH__ = 700
 __SAFE_LAST_BLOCKS__ = 10
 __FPS__ = 60
 
-__MAX_TICKS__ = 1000
+__MAX_TICKS__ = 1500
+
+__FIRST_RECT__ = 10
+__SECOND_RECT__ = 30
+__THIRD_RECT__ = 50

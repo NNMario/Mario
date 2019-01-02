@@ -39,11 +39,16 @@ class Drawer:
                 self.draw_rect(gap, env.viewport_x, (20, 20, 20), 3)
         # Draw the player
         self.draw_rect(env.player_agent.rect, env.viewport_x, (100, 100, 100))
+        self.draw_rect(env.player_agent.first_rect, env.viewport_x, (34, 139, 34), 2)
+        self.draw_rect(env.player_agent.second_rect, env.viewport_x, (32, 178, 170), 2)
+        self.draw_rect(env.player_agent.third_rect, env.viewport_x, (124, 252, 0), 1)
 
         for agent in env.agents:
             new_rect = agent.rect.copy()
             new_rect.x -= env.viewport_x
             # self.win.blit(self.image, new_rect)
+
+        self.draw_rect(env.princess, env.viewport_x, (200, 0, 0), 2)
 
         myfont = pygame.font.SysFont('Comic Sans MS', 30)
         textsurface = myfont.render(str(env.score), False, (255, 255, 255))
