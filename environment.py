@@ -34,7 +34,8 @@ class Environment:
 
         # Groups define similar objects and have their purpose
         self.agents = []  # Used for making actions on each subject
-        self.platforms = []  # Used to generate rewards on the right place
+        self.platforms = []
+        self.upper_platforms = []
         self.lose_triggers = []  # Will make the player lose on collide
         self.gaps = []
         self.coins = []
@@ -49,6 +50,7 @@ class Environment:
     def generate(self):
         self.agents.clear()
         self.platforms.clear()
+        self.upper_platforms.clear()
         self.lose_triggers.clear()
         self.gaps.clear()
         self.coins.clear()
@@ -98,11 +100,11 @@ class Environment:
 
         platform_x = 0
         while platform_x < self.width - 3:
-            if random.random() < 0.05:
+            if random.random() < 0.05 and platform_x > 10 * config.__BLOCK_SIZE__:
                 platform_y = self.ground_height - random.choice(range(config.__PLAYER_HEIGHT__ + 5, 50, 5))
                 platform = pygame.Rect((platform_x, platform_y, 3 * config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
                 self.platforms.append(platform)
-
+                self.upper_platforms.append(platform)
                 coin = pygame.Rect((platform_x + config.__BLOCK_SIZE__, platform_y - config.__BLOCK_SIZE__, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
                 self.coins.append(coin)
 
