@@ -16,7 +16,7 @@ def distance(obj1, obj2):
 
 
 class DeepQLearning(Controller):
-    def __init__(self, actions, epsilon=1.0, alpha=0.0001, gamma=0.9):
+    def __init__(self, actions, epsilon=1.0, alpha=0.0005, gamma=0.9):
         Controller.__init__(self)
         self.epsilon = epsilon
         self.alpha_decay = 0.995
@@ -24,7 +24,7 @@ class DeepQLearning(Controller):
         self.epsilon_minimum = 0.01
         self.alpha = alpha
         self.gamma = gamma
-        self.batch_size = 1000
+        self.batch_size = 512
         self.world = environment
         self.actions = actions
 
@@ -33,14 +33,14 @@ class DeepQLearning(Controller):
         self.old_x = None
         self.old_y = None
 
-        self.state_len = 19
+        self.state_len = 21
         self.model = Sequential([
-            Dense(180, input_shape=(self.state_len,)),
+            Dense(160, input_shape=(self.state_len,)),
             Activation('relu'),
             Dense(len(self.actions)),
             Activation('linear')
         ])
-        self.event_buffer = deque(maxlen=10000)
+        self.event_buffer = deque(maxlen=30000)
         self.model.compile(optimizer='rmsprop', loss='mse', metrics=['accuracy'])
         self.episode_nr = 0
         # fig = plt.figure()
@@ -80,6 +80,19 @@ class DeepQLearning(Controller):
                 dist = distance(coin, env.player_agent.rect)
                 if closest is None or dist < closest_dist:
                     closest = coin
+                    closest_dist = dist
+        if closest is None or closest_dist > 200:
+            return 200, 200
+        return env.player_agent.rect.x - closest.x, env.player_agent.rect.y - closest.y
+
+    def nearest_tube(self, env):
+        closest = None
+        closest_dist = None
+        for tube in env.tubes:
+            if tube.x > env.player_agent.rect.x:
+                dist = distance(tube, env.player_agent.rect)
+                if closest is None or dist < closest_dist:
+                    closest = tube
                     closest_dist = dist
         if closest is None or closest_dist > 200:
             return 200, 200
@@ -177,6 +190,8 @@ class DeepQLearning(Controller):
             0,  # 16 DY to the closest gap
             0,  # 17 DX to coin
             0,  # 18 DY to coin
+            0,  # 19 DX to tube
+            0,  # 19 DY to tube
         ])
 
         player = env.player_agent
@@ -244,5 +259,6 @@ class DeepQLearning(Controller):
             state[15], state[16] = 200, 200
 
         state[17], state[18] = self.nearest_coin(env)
+        state[19], state[20] = self.nearest_tube(env)
         # print(state)
         return state
