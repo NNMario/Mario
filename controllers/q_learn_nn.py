@@ -16,7 +16,7 @@ def distance(obj1, obj2):
 
 
 class DeepQLearning(Controller):
-    def __init__(self, actions, epsilon=1.0, alpha=0.001, gamma=0.9):
+    def __init__(self, actions, epsilon=1.0, alpha=0.0001, gamma=0.9):
         Controller.__init__(self)
         self.epsilon = epsilon
         self.alpha_decay = 0.995
@@ -33,9 +33,9 @@ class DeepQLearning(Controller):
         self.old_x = None
         self.old_y = None
 
-        self.state_len = 17
+        self.state_len = 19
         self.model = Sequential([
-            Dense(130, input_shape=(self.state_len,)),
+            Dense(180, input_shape=(self.state_len,)),
             Activation('relu'),
             Dense(len(self.actions)),
             Activation('linear')
@@ -72,10 +72,23 @@ class DeepQLearning(Controller):
         else:
             return closest_dist, (env.player_agent.rect.x - closest.x, env.player_agent.rect.y - closest.y)
 
+    def nearest_coin(self, env):
+        closest = None
+        closest_dist = None
+        for coin in env.coins:
+            if coin.x > env.player_agent.rect.x:
+                dist = distance(coin, env.player_agent.rect)
+                if closest is None or dist < closest_dist:
+                    closest = coin
+                    closest_dist = dist
+        if closest is None or closest_dist > 200:
+            return 200, 200
+        return env.player_agent.rect.x - closest.x, env.player_agent.rect.y - closest.y
+
+
     def reward(self, env: environment.Environment, old_env: environment.Environment):
         dx = env.player_agent.rect.x - old_env.player_agent.rect.x
-        score = 0
-        score += env.player_agent.rect.x / 10
+        score = 20 * dx
         if env.player_agent.current_velocity.x == 0 and env.player_agent.current_velocity.y == 0:
             score -= 200
         if self.passed_gaps(env):
@@ -107,8 +120,7 @@ class DeepQLearning(Controller):
                 q_for_state_1[action] = target
                 nn_input.append(state1)
                 nn_output.append(q_for_state_1)
-                print(state1)
-            history = self.model.fit(np.array(nn_input), np.array(nn_output), verbose=0, shuffle=True)
+            history = self.model.fit(np.array(nn_input), np.array(nn_output), verbose=0)
             print(history.history['acc'], history.history['loss'])
             # print('ploting!')
             # plt.plot(self.episode_nr, history.history['acc'])
@@ -163,6 +175,8 @@ class DeepQLearning(Controller):
             0,  # 14 DY to the closest upper platform
             0,  # 15 DX to the closest gap
             0,  # 16 DY to the closest gap
+            0,  # 17 DX to coin
+            0,  # 18 DY to coin
         ])
 
         player = env.player_agent
@@ -228,5 +242,7 @@ class DeepQLearning(Controller):
             state[16] = env.player_agent.rect.y - closest_gap.y
         else:
             state[15], state[16] = 200, 200
+
+        state[17], state[18] = self.nearest_coin(env)
         # print(state)
         return state

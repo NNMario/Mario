@@ -106,7 +106,7 @@ class Environment:
 
         platform_x = 0
         while platform_x < self.width - 3:
-            if random.random() < 0.05 and platform_x > 10 * config.__BLOCK_SIZE__:
+            if random.random() < 0.01 and platform_x > 10 * config.__BLOCK_SIZE__:
                 platform_y = self.ground_height - random.choice(
                     range(config.__PLAYER_HEIGHT__ + config.__BLOCK_SIZE__, 50, 5))
                 platform = pygame.Rect((platform_x, platform_y, 3 * config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
