@@ -23,3 +23,5 @@ __MAX_TICKS__ = 1500
 __FIRST_RECT__ = 10
 __SECOND_RECT__ = 30
 __THIRD_RECT__ = 50
+
+__NR_ENEMIES__ = 10

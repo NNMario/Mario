@@ -4,6 +4,7 @@ from copy import deepcopy
 import pygame
 import config
 from agents.player_agent import PlayerAgent
+from agents.enemy_agent import EnemyAgent
 
 ACTION_NONE = 3
 ACTION_FORWARD = 0
@@ -25,6 +26,7 @@ class Environment:
     At each loop of the game, the world gets updated
 
     """
+
     def __init__(self, w_width, w_height):
         self.width = w_width  # Irrelevant, will be recalculated upon generation
         self.w_width = w_width
@@ -39,11 +41,13 @@ class Environment:
         self.lose_triggers = []  # Will make the player lose on collide
         self.gaps = []
         self.coins = []
+        self.enemies = []
         self.player_agent = None
         self.princess = None
         self.ended = False
         self.is_win = False
         self.got_coin = False
+        self.killed_enemy = False
         self.score = 0
         self.viewport_x = 0
 
@@ -54,10 +58,12 @@ class Environment:
         self.lose_triggers.clear()
         self.gaps.clear()
         self.coins.clear()
+        self.enemies.clear()
 
         self.ended = False
         self.is_win = False
         self.got_coin = False
+        self.killed_enemy = False
         self.score = False
         self.player_agent = None
         self.princess = None
@@ -101,11 +107,13 @@ class Environment:
         platform_x = 0
         while platform_x < self.width - 3:
             if random.random() < 0.05 and platform_x > 10 * config.__BLOCK_SIZE__:
-                platform_y = self.ground_height - random.choice(range(config.__PLAYER_HEIGHT__ + 5, 50, 5))
+                platform_y = self.ground_height - random.choice(
+                    range(config.__PLAYER_HEIGHT__ + config.__BLOCK_SIZE__, 50, 5))
                 platform = pygame.Rect((platform_x, platform_y, 3 * config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
                 self.platforms.append(platform)
                 self.upper_platforms.append(platform)
-                coin = pygame.Rect((platform_x + config.__BLOCK_SIZE__, platform_y - config.__BLOCK_SIZE__, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
+                coin = pygame.Rect((platform_x + config.__BLOCK_SIZE__, platform_y - config.__BLOCK_SIZE__,
+                                    config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
                 self.coins.append(coin)
 
             platform_x += 3 * config.__BLOCK_SIZE__
@@ -135,6 +143,21 @@ class Environment:
         self.player_agent.set_velocity(3, 10)
         self.player_agent.set_acceleration(0, config.__GRAVITY__)
 
+        for i in range(config.__NR_ENEMIES__):
+            platform = random.choice(self.platforms)
+            enemy_y = platform.top - config.__BLOCK_SIZE__
+            enemy_x = platform.left
+            if enemy_x > 100:
+                enemy = EnemyAgent(
+                    enemy_x, enemy_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__
+                )
+                # self.enemies.append(enemy)
+
+        #enemy = EnemyAgent(
+        #    60, self.ground_height - config.__BLOCK_SIZE__, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__
+        #)
+        #self.enemies.append(enemy)
+
     def tick(self, agent_action):
         self.player_agent.perform_action(agent_action)
         self.player_agent.tick(self)
@@ -154,11 +177,21 @@ class Environment:
         else:
             self.got_coin = False
 
-
         for trigger in self.lose_triggers:
             if self.player_agent.rect.colliderect(trigger):
                 self.end()
                 return
+
+        for enemy in self.enemies:
+            if self.player_agent.rect.colliderect(enemy.top_rect):
+                self.killed_enemy = True
+                print('Killed!')
+                self.enemies.remove(enemy)
+            elif self.player_agent.rect.colliderect(enemy.rect):
+                self.end()
+                return
+        else:
+            self.killed_enemy = False
 
         hits = self.player_agent.rect.colliderect(self.princess)
         if hits:

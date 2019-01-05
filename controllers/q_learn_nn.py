@@ -16,10 +16,11 @@ def distance(obj1, obj2):
 
 
 class DeepQLearning(Controller):
-    def __init__(self, actions, epsilon=1.0, alpha=0.2, gamma=0.9):
+    def __init__(self, actions, epsilon=1.0, alpha=0.001, gamma=0.9):
         Controller.__init__(self)
         self.epsilon = epsilon
-        self.epsilon_decay = 0.965
+        self.alpha_decay = 0.995
+        self.min_alpha = 0.0001
         self.epsilon_minimum = 0.01
         self.alpha = alpha
         self.gamma = gamma
@@ -32,9 +33,9 @@ class DeepQLearning(Controller):
         self.old_x = None
         self.old_y = None
 
-        self.state_len = 14
+        self.state_len = 17
         self.model = Sequential([
-            Dense(170, input_shape=(self.state_len,)),
+            Dense(130, input_shape=(self.state_len,)),
             Activation('relu'),
             Dense(len(self.actions)),
             Activation('linear')
@@ -66,11 +67,10 @@ class DeepQLearning(Controller):
                 if closest is None or dist < closest_dist:
                     closest = upper
                     closest_dist = dist
-        if closest is None:
-            return 200, 0
+        if closest is None or closest_dist > 200:
+            return 200, (0, 0)
         else:
-            closest_angle = math.atan2(closest.y - env.player_agent.rect.y, closest.x - env.player_agent.rect.x)
-            return closest_dist, closest_angle
+            return closest_dist, (env.player_agent.rect.x - closest.x, env.player_agent.rect.y - closest.y)
 
     def reward(self, env: environment.Environment, old_env: environment.Environment):
         dx = env.player_agent.rect.x - old_env.player_agent.rect.x
@@ -107,6 +107,7 @@ class DeepQLearning(Controller):
                 q_for_state_1[action] = target
                 nn_input.append(state1)
                 nn_output.append(q_for_state_1)
+                print(state1)
             history = self.model.fit(np.array(nn_input), np.array(nn_output), verbose=0, shuffle=True)
             print(history.history['acc'], history.history['loss'])
             # print('ploting!')
@@ -115,6 +116,9 @@ class DeepQLearning(Controller):
         if self.epsilon > self.epsilon_minimum:
             # self.epsilon *= self.epsilon_decay
             self.epsilon -= 0.01
+        #if self.alpha > self.min_alpha:
+        #    self.alpha *= self.alpha_decay
+
         print('Learning process ended!')
 
     def remember(self, env: environment.Environment, action, reward: int, next_env: environment.Environment):
@@ -138,6 +142,7 @@ class DeepQLearning(Controller):
         self.episode_nr = episode_nr
         self.learn()
         print(self.epsilon)
+        print(self.alpha)
 
     def get_state(self, env: environment.Environment):
         state = np.array([
@@ -154,7 +159,10 @@ class DeepQLearning(Controller):
             0,  # 10 Player vx
             0,  # 11 Player vy
             0,  # 12 Distance to the closest upper platform
-            0,  # 13 Angle to the closest upper platform
+            0,  # 13 DX to the closest upper platform
+            0,  # 14 DY to the closest upper platform
+            0,  # 15 DX to the closest gap
+            0,  # 16 DY to the closest gap
         ])
 
         player = env.player_agent
@@ -189,10 +197,15 @@ class DeepQLearning(Controller):
         collide_rect.height += 1
         state[5] = 100
 
+        closest_gap = None
+        closest_dist = 200
         for gap in env.gaps:
             # state[5] = min(state[5], distance(agent, gap))
             if collide_rect.x < gap.x:
-                state[5] = min(state[5], distance(player.rect, gap))
+                dist = distance(player.rect, gap)
+                if closest_gap is None or dist < closest_dist:
+                    closest_dist = dist
+                    closest_gap = gap
             if gap.colliderect(player.first_rect):
                 state[7] = 1
                 state[8] = 1
@@ -203,11 +216,17 @@ class DeepQLearning(Controller):
             elif gap.colliderect(player.third_rect):
                 state[9] = 1
 
+        state[5] = closest_dist
         state[6] = 1 if self.passed_gaps(env) else 0
         state[10] = player.current_velocity.x
         state[11] = player.current_velocity.y
         dist, angle = self.upper_platform(env)
         state[12] = min(200.0, dist)
-        state[13] = angle
+        state[13], state[14] = angle
+        if closest_gap is not None:
+            state[15] = env.player_agent.rect.x - closest_gap.x
+            state[16] = env.player_agent.rect.y - closest_gap.y
+        else:
+            state[15], state[16] = 200, 200
         # print(state)
         return state

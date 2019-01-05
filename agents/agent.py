@@ -119,4 +119,5 @@ class Agent(objects.object.Drawable):
                 else:
                     self.rect.top = platform.bottom
                     self.current_velocity.y = 0
+
         self._update_rects()
