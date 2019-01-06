@@ -80,6 +80,11 @@ class Agent(objects.object.Drawable):
         self.old_x = self.rect.x
         self.old_y = self.rect.y
 
+        if self._type == 'Enemy':
+            platforms = env.enemy_touchable
+        else:
+            platforms = env.platforms
+
         self.current_velocity += self.acceleration
         dx = self.current_velocity.x + 0.5 * self.acceleration.x
         self.rect.x += dx
@@ -92,7 +97,7 @@ class Agent(objects.object.Drawable):
             self.current_velocity.x = 0
             self.rect.left = env.viewport_x
 
-        for platform in env.platforms:
+        for platform in platforms:
             if platform.colliderect(self.rect):
                 if dx > 0:
                     self.rect.right = platform.left
@@ -110,7 +115,7 @@ class Agent(objects.object.Drawable):
             self.current_velocity.y = 0
             self.rect.y = 0
 
-        for platform in env.platforms:
+        for platform in platforms:
             if platform.colliderect(self.rect):
                 if dy > 0:
                     self.rect.bottom = platform.top

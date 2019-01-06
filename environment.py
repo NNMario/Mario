@@ -37,6 +37,7 @@ class Environment:
         # Groups define similar objects and have their purpose
         self.agents = []  # Used for making actions on each subject
         self.platforms = []
+        self.enemy_touchable = []
         self.upper_platforms = []
         self.lose_triggers = []  # Will make the player lose on collide
         self.gaps = []
@@ -57,6 +58,7 @@ class Environment:
         self.platforms.clear()
         self.upper_platforms.clear()
         self.lose_triggers.clear()
+        self.enemy_touchable.clear()
         self.gaps.clear()
         self.coins.clear()
         self.tubes.clear()
@@ -136,6 +138,8 @@ class Environment:
              config.__PRINCESS_WIDTH__,
              config.__PRINCESS_HEIGHT__)
         )
+
+        self.enemy_touchable = self.platforms + self.gaps
         self._create_agents()
 
     def _create_agents(self):
@@ -159,12 +163,10 @@ class Environment:
                 enemy = EnemyAgent(
                     enemy_x, enemy_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__
                 )
-                # self.enemies.append(enemy)
-
-        #enemy = EnemyAgent(
-        #    60, self.ground_height - config.__BLOCK_SIZE__, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__
-        #)
-        #self.enemies.append(enemy)
+                enemy.set_velocity(2, 0)
+                enemy.set_acceleration(0, config.__GRAVITY__)
+                self.enemies.append(enemy)
+                self.agents.append(enemy)
 
     def tick(self, agent_action):
         self.player_agent.perform_action(agent_action)
@@ -193,7 +195,6 @@ class Environment:
         for enemy in self.enemies:
             if self.player_agent.rect.colliderect(enemy.top_rect):
                 self.killed_enemy = True
-                print('Killed!')
                 self.enemies.remove(enemy)
             elif self.player_agent.rect.colliderect(enemy.rect):
                 self.end()

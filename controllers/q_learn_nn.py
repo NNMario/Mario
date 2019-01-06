@@ -24,7 +24,7 @@ class DeepQLearning(Controller):
         self.epsilon_minimum = 0.01
         self.alpha = alpha
         self.gamma = gamma
-        self.batch_size = 512
+        self.batch_size = 1024
         self.world = environment
         self.actions = actions
 
@@ -33,9 +33,9 @@ class DeepQLearning(Controller):
         self.old_x = None
         self.old_y = None
 
-        self.state_len = 21
+        self.state_len = 25
         self.model = Sequential([
-            Dense(160, input_shape=(self.state_len,)),
+                Dense(250, input_shape=(self.state_len,)),
             Activation('relu'),
             Dense(len(self.actions)),
             Activation('linear')
@@ -98,6 +98,19 @@ class DeepQLearning(Controller):
             return 200, 200
         return env.player_agent.rect.x - closest.x, env.player_agent.rect.y - closest.y
 
+    def nearest_enemy(self, env):
+        closest = None
+        closest_dist = None
+        for enemy in env.enemies:
+            if enemy.rect.x > env.player_agent.rect.x:
+                dist = distance(enemy.rect, env.player_agent.rect)
+                if closest is None or dist < closest_dist:
+                    closest = enemy
+                    closest_dist = dist
+        if closest is None or closest_dist > 200:
+            return 200, 200, 0, 0
+        return env.player_agent.rect.x - closest.rect.x, env.player_agent.rect.y - closest.rect.y, closest.current_velocity.x, closest.current_velocity.y
+
 
     def reward(self, env: environment.Environment, old_env: environment.Environment):
         dx = env.player_agent.rect.x - old_env.player_agent.rect.x
@@ -110,6 +123,8 @@ class DeepQLearning(Controller):
         if env.got_coin:
             score += 1000
         # score += 10 * self.passed_gaps(env)
+        if env.killed_enemy:
+            score += 500
 
         if env.ended and not env.is_win:
             score -= 5000
@@ -192,6 +207,10 @@ class DeepQLearning(Controller):
             0,  # 18 DY to coin
             0,  # 19 DX to tube
             0,  # 19 DY to tube
+            0,  # 20 DX to enemy
+            0,  # 21 DY to enemy
+            0,  # 22 Enemy vx
+            0,  # 23 Enemy vy
         ])
 
         player = env.player_agent
@@ -260,5 +279,6 @@ class DeepQLearning(Controller):
 
         state[17], state[18] = self.nearest_coin(env)
         state[19], state[20] = self.nearest_tube(env)
+        state[21], state[22], state[23], state[24] = self.nearest_enemy(env)
         # print(state)
         return state
