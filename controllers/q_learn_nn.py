@@ -1,14 +1,19 @@
 import math
 import random
 from collections import deque
+
+import keras
 import numpy as np
 from keras.layers import Dense, Activation
 from keras.models import Sequential
 from keras import initializers
+from keras.optimizers import RMSprop
 import environment
 from controllers.controller import Controller
 import config
 import matplotlib.pyplot as plt
+from keras.models import model_from_json
+import pickle
 
 
 def distance(obj1, obj2):
@@ -16,7 +21,7 @@ def distance(obj1, obj2):
 
 
 class DeepQLearning(Controller):
-    def __init__(self, actions, epsilon=1.0, alpha=0.0005, gamma=0.9):
+    def __init__(self, actions, epsilon=1.0, alpha=0.01, gamma=0.9):
         Controller.__init__(self)
         self.epsilon = epsilon
         self.alpha_decay = 0.995
@@ -24,7 +29,7 @@ class DeepQLearning(Controller):
         self.epsilon_minimum = 0.01
         self.alpha = alpha
         self.gamma = gamma
-        self.batch_size = 1024
+        self.batch_size = 1000
         self.world = environment
         self.actions = actions
 
@@ -33,19 +38,41 @@ class DeepQLearning(Controller):
         self.old_x = None
         self.old_y = None
 
-        self.state_len = 25
+        self.state_len = 28
         self.model = Sequential([
-                Dense(250, input_shape=(self.state_len,)),
+            Dense(130),
             Activation('relu'),
+
+            # Dense(800, input_shape=(self.state_len,)),
             Dense(len(self.actions)),
             Activation('linear')
         ])
-        self.event_buffer = deque(maxlen=30000)
-        self.model.compile(optimizer='rmsprop', loss='mse', metrics=['accuracy'])
+        self.event_buffer = deque(maxlen=50000)
+        self.model.compile(optimizer=RMSprop(lr=self.alpha), loss='mse', metrics=['accuracy'])
         self.episode_nr = 0
         # fig = plt.figure()
         # plt.axis([0, 1000, 0, 1])
         # plt.show()
+
+    def save(self):
+        with open('model.data', 'w') as export_to:
+            export_to.write(self.model.to_json())
+        self.model.save_weights(filepath='model.weights')
+        with open('model.variables', 'wb') as export_vars:
+            data = [self.gamma, self.alpha, self.epsilon, self.batch_size]
+            pickle.dump(data, export_vars)
+
+    def load(self):
+        with open('model.data') as mf:
+            self.model = model_from_json(mf.read())
+            self.model.compile(optimizer=RMSprop(lr=self.alpha), loss='mse', metrics=['accuracy'])
+
+        self.model.load_weights('model.weights')
+        self.model._make_predict_function()
+
+        with open('model.variables', 'rb') as import_vars:
+            self.gamma, self.alpha, self.epsilon, self.batch_size = pickle.load(import_vars)
+            print(self.gamma)
 
     def passed_gaps(self, env):
         for gap in env.gaps:
@@ -108,28 +135,28 @@ class DeepQLearning(Controller):
                     closest = enemy
                     closest_dist = dist
         if closest is None or closest_dist > 200:
-            return 200, 200, 0, 0
-        return env.player_agent.rect.x - closest.rect.x, env.player_agent.rect.y - closest.rect.y, closest.current_velocity.x, closest.current_velocity.y
+            return 200, 200, 0, 0, 200
 
+        return env.player_agent.rect.x - closest.rect.x, env.player_agent.rect.y - closest.rect.y, closest.current_velocity.x, closest.current_velocity.y, distance(closest.rect, env.player_agent.rect)
 
     def reward(self, env: environment.Environment, old_env: environment.Environment):
         dx = env.player_agent.rect.x - old_env.player_agent.rect.x
-        score = 20 * dx
+        score = env.player_agent.rect.x / 10.0
         if env.player_agent.current_velocity.x == 0 and env.player_agent.current_velocity.y == 0:
             score -= 200
         if self.passed_gaps(env):
             score += 100
 
         if env.got_coin:
-            score += 1000
+            score += 200
         # score += 10 * self.passed_gaps(env)
         if env.killed_enemy:
-            score += 500
+            score += 200
 
         if env.ended and not env.is_win:
             score -= 5000
         elif env.ended and env.is_win:
-            score += 5000
+            score += 10000
         return score
 
     def getQ(self, state):
@@ -139,6 +166,7 @@ class DeepQLearning(Controller):
     def learn(self):
         if len(self.event_buffer) > self.batch_size:
             batch = random.sample(self.event_buffer, self.batch_size)
+            temp_buffer = []
             nn_input = []
             nn_output = []
             for state1, action, reward, state2 in batch:
@@ -146,9 +174,15 @@ class DeepQLearning(Controller):
                 target = reward + self.gamma * max_q_for_state_2
                 q_for_state_1 = self.getQ(state1)
                 q_for_state_1[action] = target
+                td_error = abs(reward - q_for_state_1[action])
+                # temp_buffer.append((state1, q_for_state_1, td_error))
                 nn_input.append(state1)
                 nn_output.append(q_for_state_1)
-            history = self.model.fit(np.array(nn_input), np.array(nn_output), verbose=0)
+
+            # temp_buffer.sort(key=lambda x: x[2], reverse=True)
+            # temp_buffer = temp_buffer[: len(temp_buffer) // 2]
+            # nn_input, nn_output, _ = zip(*temp_buffer)
+            history = self.model.fit(np.array(nn_input), np.array(nn_output), verbose=0, shuffle=True)
             print(history.history['acc'], history.history['loss'])
             # print('ploting!')
             # plt.plot(self.episode_nr, history.history['acc'])
@@ -156,7 +190,7 @@ class DeepQLearning(Controller):
         if self.epsilon > self.epsilon_minimum:
             # self.epsilon *= self.epsilon_decay
             self.epsilon -= 0.01
-        #if self.alpha > self.min_alpha:
+        # if self.alpha > self.min_alpha:
         #    self.alpha *= self.alpha_decay
 
         print('Learning process ended!')
@@ -206,11 +240,14 @@ class DeepQLearning(Controller):
             0,  # 17 DX to coin
             0,  # 18 DY to coin
             0,  # 19 DX to tube
-            0,  # 19 DY to tube
-            0,  # 20 DX to enemy
-            0,  # 21 DY to enemy
-            0,  # 22 Enemy vx
-            0,  # 23 Enemy vy
+            0,  # 20 DY to tube
+            0,  # 21 DX to enemy
+            0,  # 22 DY to enemy
+            0,  # 23 Enemy vx
+            0,  # 24 Enemy vy
+            0,  # 25 Enemy distance
+            0,  # 26 Gap dx
+            0,  # 27 Gap dy
         ])
 
         player = env.player_agent
@@ -266,6 +303,8 @@ class DeepQLearning(Controller):
 
         state[5] = closest_dist
         state[6] = 1 if self.passed_gaps(env) else 0
+        dx, dy = (200, 200) if closest_gap is None else (env.player_agent.rect.x - closest_gap.x, env.player_agent.rect.y - closest_gap.y)
+        state[26], state[27] = dx, dy
         state[10] = player.current_velocity.x
         state[11] = player.current_velocity.y
         dist, angle = self.upper_platform(env)
@@ -279,6 +318,6 @@ class DeepQLearning(Controller):
 
         state[17], state[18] = self.nearest_coin(env)
         state[19], state[20] = self.nearest_tube(env)
-        state[21], state[22], state[23], state[24] = self.nearest_enemy(env)
+        state[21], state[22], state[23], state[24], state[25] = self.nearest_enemy(env)
         # print(state)
         return state

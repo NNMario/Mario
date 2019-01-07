@@ -95,7 +95,7 @@ class Environment:
         for i in range(self.block_length):
             block = pygame.Rect((floor_x, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
             self.platforms.append(block)
-            if random.random() < 0.15 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 3 * config.__BLOCK_SIZE__:
+            if random.random() < 0.15 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 4 * config.__BLOCK_SIZE__:
                 last_x = floor_x
                 gap = pygame.Rect((floor_x + config.__BLOCK_SIZE__, floor_y, config.__BLOCK_SIZE__,
                                    config.__BLOCK_SIZE__))

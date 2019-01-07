@@ -39,6 +39,8 @@ class Game:
             self.environment.generate()
             self.ticks = 0
             draw = False
+            save = False
+            load = False
             while self.run and not self.environment.ended:
                 clock = pygame.time.Clock()
                 # Keep the game at 60 fps
@@ -73,6 +75,10 @@ class Game:
                     config.__FPS__ -= 20
                 elif keys_list[pygame.K_c]:
                     draw = True
+                elif keys_list[pygame.K_s]:
+                    save = True
+                elif keys_list[pygame.K_l]:
+                    load = True
                 # Tick the world and every object in it
 
                 current_state = self.environment.snapshot()
@@ -99,7 +105,10 @@ class Game:
                 if self.ticks > self.max_ticks:
                     break
             current_controller.done(self.episodes)
-
+            if save:
+                current_controller.save()
+            if load:
+                current_controller.load()
         self.drawer.uninit()
 
 
