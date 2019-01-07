@@ -32,6 +32,7 @@ class Game:
         # The player agent will be controlled by this
         current_controller = DeepQLearning(Actions)  # KeyBoardController()
         # current_controller = KeyBoardController()
+        feed = True
         while self.run:
             self.episodes += 1
             print(self.episodes)
@@ -79,6 +80,10 @@ class Game:
                     save = True
                 elif keys_list[pygame.K_l]:
                     load = True
+                elif keys_list[pygame.K_f]:
+                    feed = not feed
+
+
                 # Tick the world and every object in it
 
                 current_state = self.environment.snapshot()
@@ -104,7 +109,8 @@ class Game:
 
                 if self.ticks > self.max_ticks:
                     break
-            current_controller.done(self.episodes)
+                if feed:
+                    current_controller.done(self.episodes)
             if save:
                 current_controller.save()
             if load:

@@ -30,7 +30,7 @@ class DeepQLearning(Controller):
         self.epsilon_minimum = 0.01
         self.alpha = alpha
         self.gamma = gamma
-        self.batch_size = 1000
+        self.batch_size = 32
         self.world = environment
         self.actions = actions
 
@@ -39,9 +39,9 @@ class DeepQLearning(Controller):
         self.old_x = None
         self.old_y = None
 
-        self.state_len = 28
+        self.state_len = 30
         self.model = Sequential([
-            Dense(80, input_shape=(self.state_len, )),
+            Dense(50, input_shape=(self.state_len, )),
             Activation('relu'),
             Dense(100),
             Activation('relu'),
@@ -52,8 +52,8 @@ class DeepQLearning(Controller):
             Dense(len(self.actions)),
             Activation('linear')
         ])
-        self.event_buffer = deque(maxlen=50000)
-        self.model.compile(optimizer=RMSprop(lr=self.alpha), loss='mse', metrics=['accuracy'])
+        self.event_buffer = deque(maxlen=100000)
+        self.model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
         self.episode_nr = 0
         # fig = plt.figure()
         # plt.axis([0, 1000, 0, 1])
@@ -70,7 +70,7 @@ class DeepQLearning(Controller):
     def load(self):
         with open('model.data') as mf:
             self.model = model_from_json(mf.read())
-            self.model.compile(optimizer=RMSprop(lr=self.alpha), loss='mse', metrics=['accuracy'])
+            self.model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
 
         self.model.load_weights('model.weights')
         self.model._make_predict_function()
@@ -100,9 +100,9 @@ class DeepQLearning(Controller):
                     closest = upper
                     closest_dist = dist
         if closest is None or closest_dist > 200:
-            return 200, (0, 0)
+            return 200, (0, 0), 0
         else:
-            return closest_dist, (env.player_agent.rect.x - closest.x, env.player_agent.rect.y - closest.y)
+            return closest_dist, (env.player_agent.rect.x - closest.x, env.player_agent.rect.y - closest.y), closest.y - env.ground_height
 
     def nearest_coin(self, env):
         closest = None
@@ -127,8 +127,8 @@ class DeepQLearning(Controller):
                     closest = tube
                     closest_dist = dist
         if closest is None or closest_dist > 200:
-            return 200, 200
-        return env.player_agent.rect.x - closest.x, env.player_agent.rect.y - closest.y
+            return 200, 200, 0
+        return env.player_agent.rect.x - closest.x, env.player_agent.rect.y - closest.y, closest.y - env.ground_height
 
     def nearest_enemy(self, env):
         closest = None
@@ -139,10 +139,12 @@ class DeepQLearning(Controller):
                 if closest is None or dist < closest_dist:
                     closest = enemy
                     closest_dist = dist
-        if closest is None or closest_dist > 200:
+        if closest is None:
             return 200, 200, 0, 0, 200
-
-        return env.player_agent.rect.x - closest.rect.x, env.player_agent.rect.y - closest.rect.y, closest.current_velocity.x, closest.current_velocity.y, distance(closest.rect, env.player_agent.rect)
+        dx = env.player_agent.rect.x - closest.rect.x
+        dy = env.player_agent.rect.y - closest.rect.y
+        vx, vy = closest.current_velocity.x, closest.current_velocity.y
+        return dx, dy, vx, vy, distance(closest.rect, env.player_agent.rect)
 
     def reward(self, env: environment.Environment, old_env: environment.Environment):
         dx = env.player_agent.rect.x - old_env.player_agent.rect.x
@@ -161,7 +163,8 @@ class DeepQLearning(Controller):
             score += 1000
         # score += 10 * self.passed_gaps(env)
         if env.killed_enemy:
-            score += 2000
+            print('Killed')
+            score += 1000
 
         if env.ended and not env.is_win:
             score -= 5000
@@ -199,7 +202,7 @@ class DeepQLearning(Controller):
 
         if self.epsilon > self.epsilon_minimum:
             # self.epsilon *= self.epsilon_decay
-            self.epsilon -= 0.01
+            self.epsilon -= 0.001
         # if self.alpha > self.min_alpha:
         #    self.alpha *= self.alpha_decay
 
@@ -258,6 +261,8 @@ class DeepQLearning(Controller):
             0,  # 25 Enemy distance
             0,  # 26 Gap dx
             0,  # 27 Gap dy
+            0,  # 28 Upper platform height
+            0,  # 29 Tube height
         ])
 
         player = env.player_agent
@@ -317,9 +322,11 @@ class DeepQLearning(Controller):
         state[26], state[27] = dx, dy
         state[10] = player.current_velocity.x
         state[11] = player.current_velocity.y
-        dist, angle = self.upper_platform(env)
+        dist, angle, upper_height = self.upper_platform(env)
         state[12] = min(200.0, dist)
         state[13], state[14] = angle
+        state[28] = upper_height
+
         if closest_gap is not None:
             state[15] = env.player_agent.rect.x - closest_gap.x
             state[16] = env.player_agent.rect.y - closest_gap.y
@@ -327,7 +334,8 @@ class DeepQLearning(Controller):
             state[15], state[16] = 200, 200
 
         state[17], state[18] = self.nearest_coin(env)
-        state[19], state[20] = self.nearest_tube(env)
+        state[19], state[20], state[29] = self.nearest_tube(env)
         state[21], state[22], state[23], state[24], state[25] = self.nearest_enemy(env)
+
         # print(state)
         return state

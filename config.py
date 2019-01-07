@@ -24,4 +24,4 @@ __FIRST_RECT__ = 10
 __SECOND_RECT__ = 30
 __THIRD_RECT__ = 50
 
-__NR_ENEMIES__ = 10
+__NR_ENEMIES__ = 30
