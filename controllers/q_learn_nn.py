@@ -7,6 +7,7 @@ import numpy as np
 from keras.layers import Dense, Activation
 from keras.models import Sequential
 from keras import initializers
+from keras.layers import Dropout
 from keras.optimizers import RMSprop
 import environment
 from controllers.controller import Controller
@@ -21,7 +22,7 @@ def distance(obj1, obj2):
 
 
 class DeepQLearning(Controller):
-    def __init__(self, actions, epsilon=1.0, alpha=0.01, gamma=0.9):
+    def __init__(self, actions, epsilon=1.0, alpha=0.001, gamma=0.9):
         Controller.__init__(self)
         self.epsilon = epsilon
         self.alpha_decay = 0.995
@@ -40,9 +41,13 @@ class DeepQLearning(Controller):
 
         self.state_len = 28
         self.model = Sequential([
-            Dense(130),
+            Dense(80, input_shape=(self.state_len, )),
             Activation('relu'),
-
+            Dense(100),
+            Activation('relu'),
+            Dropout(0.1),
+            Dense(50),
+            Activation('relu'),
             # Dense(800, input_shape=(self.state_len,)),
             Dense(len(self.actions)),
             Activation('linear')
@@ -141,17 +146,22 @@ class DeepQLearning(Controller):
 
     def reward(self, env: environment.Environment, old_env: environment.Environment):
         dx = env.player_agent.rect.x - old_env.player_agent.rect.x
-        score = env.player_agent.rect.x / 10.0
+        score = 0
+        if dx > 0:
+            score += 100
         if env.player_agent.current_velocity.x == 0 and env.player_agent.current_velocity.y == 0:
             score -= 200
         if self.passed_gaps(env):
             score += 100
 
-        if env.got_coin:
+        if env.player_agent.current_velocity.y == 0 and env.player_agent.rect.y != env.ground_height:
             score += 200
+
+        if env.got_coin:
+            score += 1000
         # score += 10 * self.passed_gaps(env)
         if env.killed_enemy:
-            score += 200
+            score += 2000
 
         if env.ended and not env.is_win:
             score -= 5000

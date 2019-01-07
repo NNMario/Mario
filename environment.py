@@ -105,12 +105,14 @@ class Environment:
                 self.gaps.append(gap)
                 floor_x += 3 * config.__BLOCK_SIZE__
             elif random.random() < 0.01 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 3 * config.__BLOCK_SIZE__:
+                last_x = floor_x
                 tube_h = random.choice(range(config.__PLAYER_HEIGHT__ + config.__BLOCK_SIZE__, 50, 5))
                 tube_y = self.ground_height - tube_h
                 tube = pygame.Rect((floor_x, tube_y, config.__BLOCK_SIZE__, tube_h))
                 self.platforms.append(tube)
                 self.tubes.append(tube)
-            elif random.random() < 0.01 and floor_x > 10 * config.__BLOCK_SIZE__:
+            elif random.random() < 0.01 and floor_x > 10 * config.__BLOCK_SIZE__ and last_x > 6 * config.__BLOCK_SIZE__:
+                last_x = floor_x
                 for i in range(1, 3):
                     block = pygame.Rect((floor_x + i * config.__BLOCK_SIZE__, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
                     self.platforms.append(block)

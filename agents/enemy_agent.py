@@ -14,6 +14,9 @@ class EnemyAgent(Agent):
         self.action_queue = []
 
     def tick(self, env):
+        self.perform_action(3)
+        Agent.tick(self, env)
+        return
         if not self.action_queue:
             self.action_queue.extend([random.choice(self.actions)] * 3)
         else:
