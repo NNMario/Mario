@@ -6,6 +6,7 @@ from draw import Drawer
 from environment import Environment
 from environment import actions as Actions
 import environment
+import cProfile, pstats, io
 
 
 class Game:
@@ -32,21 +33,24 @@ class Game:
         # The player agent will be controlled by this
         current_controller = DeepQLearning(Actions)  # KeyBoardController()
         # current_controller = KeyBoardController()
-        feed = True
+        feed = config.__FEED__
+        if feed:
+            print('Feeding new data')
+        else:
+            print('No training')
+
         while self.run:
-            self.episodes += 1
-            print(self.episodes)
             # Generate all the blocks, enemies
             self.environment.generate()
-            self.ticks = 0
+            ticks = 0
+            self.episodes += 1
             draw = False
             save = False
             load = False
-            next = False
             while self.run and not self.environment.ended:
-                clock = pygame.time.Clock()
+                # clock = pygame.time.Clock()
                 # Keep the game at 60 fps
-                clock.tick_busy_loop(config.__FPS__)
+                # clock.tick_busy_loop(config.__FPS__)
 
                 # poll events, see if we exit the game
                 for event in pygame.event.get():
@@ -81,8 +85,6 @@ class Game:
                     save = True
                 elif keys_list[pygame.K_l]:
                     load = True
-                elif keys_list[pygame.K_f]:
-                    feed = not feed
                 elif keys_list[pygame.K_n]:
                     break
 
@@ -104,25 +106,38 @@ class Game:
                     # Save the state transition
                     current_controller.remember(current_state, player_action, reward, self.environment)
 
-                self.ticks += 1
+                ticks += 1
                 # Draw everything
                 if draw:
                     self.drawer.draw(self.environment)
 
-                if self.ticks > self.max_ticks:
+                if ticks > self.max_ticks:
                     break
                 if feed:
-                    pass#current_controller.done(self.episodes)
+                    current_controller.done(self.episodes)
+            self.ticks += ticks
+            print(ticks, current_controller.last_acc, self.ticks)
             if save:
                 current_controller.save()
+                print('Saved')
             if load:
                 current_controller.load()
+                print('Loaded')
         self.drawer.uninit()
 
 
 def main():
+    # pr = cProfile.Profile()
+    # pr.enable()
+
     game = Game()
     game.start()
+
+    # pr.disable()
+    # s = io.StringIO()
+    # ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
+    # ps.print_stats()
+    # print(s.getvalue())
 
 
 if __name__ == '__main__':

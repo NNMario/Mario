@@ -38,6 +38,7 @@ class DeepQLearning(Controller):
         self.last_state = None
         self.old_x = None
         self.old_y = None
+        self.last_acc = None
 
         self.state_len = 30
         self.model = Sequential([
@@ -75,7 +76,6 @@ class DeepQLearning(Controller):
 
         with open('model.variables', 'rb') as import_vars:
             self.gamma, self.alpha, self.epsilon, self.batch_size = pickle.load(import_vars)
-            print(self.gamma)
 
     def passed_gaps(self, env):
         for gap in env.gaps:
@@ -92,7 +92,7 @@ class DeepQLearning(Controller):
         closest = None
         closest_dist = None
         for upper in env.upper_platforms:
-            if upper.x > env.player_agent.rect.x:
+            if upper.x >= env.player_agent.rect.x:
                 dist = distance(upper, env.player_agent.rect)
                 if closest is None or dist < closest_dist:
                     closest = upper
@@ -106,7 +106,7 @@ class DeepQLearning(Controller):
         closest = None
         closest_dist = None
         for coin in env.coins:
-            if coin.x > env.player_agent.rect.x:
+            if coin.x >= env.player_agent.rect.x:
                 dist = distance(coin, env.player_agent.rect)
                 if closest is None or dist < closest_dist:
                     closest = coin
@@ -119,7 +119,7 @@ class DeepQLearning(Controller):
         closest = None
         closest_dist = None
         for tube in env.tubes:
-            if tube.x > env.player_agent.rect.x:
+            if tube.x >= env.player_agent.rect.x:
                 dist = distance(tube, env.player_agent.rect)
                 if closest is None or dist < closest_dist:
                     closest = tube
@@ -137,7 +137,7 @@ class DeepQLearning(Controller):
                 if closest is None or dist < closest_dist:
                     closest = enemy
                     closest_dist = dist
-        if closest is None:
+        if closest is None or closest_dist > 200:
             return 200, 200, 0, 0, 200
         dx = env.player_agent.rect.x - closest.rect.x
         dy = env.player_agent.rect.y - closest.rect.y
@@ -161,7 +161,6 @@ class DeepQLearning(Controller):
             score += 1000
         # score += 10 * self.passed_gaps(env)
         if env.killed_enemy:
-            print('Killed')
             score += 1000
 
         if env.ended and not env.is_win:
@@ -194,17 +193,13 @@ class DeepQLearning(Controller):
             # temp_buffer = temp_buffer[: len(temp_buffer) // 2]
             # nn_input, nn_output, _ = zip(*temp_buffer)
             history = self.model.fit(np.array(nn_input), np.array(nn_output), verbose=0, shuffle=True)
-            print(history.history['acc'], history.history['loss'])
+            self.last_acc = history.history['acc']
             # print('ploting!')
             # plt.plot(self.episode_nr, history.history['acc'])
 
         if self.epsilon > self.epsilon_minimum:
             # self.epsilon *= self.epsilon_decay
             self.epsilon -= 0.0001
-        # if self.alpha > self.min_alpha:
-        #    self.alpha *= self.alpha_decay
-
-        print('Learning process ended!')
 
     def remember(self, env: environment.Environment, action, reward: int, next_env: environment.Environment):
         state = self.get_state(env)
@@ -226,8 +221,6 @@ class DeepQLearning(Controller):
     def done(self, episode_nr=0):
         self.episode_nr = episode_nr
         self.learn()
-        print(self.epsilon)
-        print(self.alpha)
 
     def get_state(self, env: environment.Environment):
         state = np.array([

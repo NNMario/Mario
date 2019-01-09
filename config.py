@@ -19,7 +19,7 @@ __WIDTH__ = 700
 __SAFE_LAST_BLOCKS__ = 10
 __FPS__ = 60
 
-__MAX_TICKS__ = 20500
+__MAX_TICKS__ = 1500
 
 __FIRST_RECT__ = 10
 __SECOND_RECT__ = 30
@@ -28,3 +28,4 @@ __THIRD_RECT__ = 50
 __NR_ENEMIES__ = 30
 
 __TEXTURES__ = True
+__FEED__ = True

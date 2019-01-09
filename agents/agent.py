@@ -5,6 +5,7 @@ import objects.object
 import numpy as np
 import config
 
+
 class Agent(objects.object.Drawable):
     def __init__(self, x, y, width, height):
         objects.object.Drawable.__init__(self, x, y, width, height)
@@ -14,10 +15,6 @@ class Agent(objects.object.Drawable):
         self.acceleration = helpers.Vec2d(0, 0)
         self.is_jump = False
         self._type = None
-        self.first_rect = None
-        self.second_rect = None
-        self.third_rect = None
-        self._update_rects()
         self.old_x = 0
         self.old_y = 0
 
@@ -56,25 +53,6 @@ class Agent(objects.object.Drawable):
 
     def _stop_jump(self):
         self.is_jump = False
-
-    def _update_rects(self):
-        self.first_rect = self.rect.copy()
-        self.first_rect.width += config.__FIRST_RECT__
-        self.first_rect.x -= config.__FIRST_RECT__ / 2
-        self.first_rect.height += config.__FIRST_RECT__
-        self.first_rect.y -= config.__FIRST_RECT__ / 2
-
-        self.second_rect = self.rect.copy()
-        self.second_rect.width += config.__SECOND_RECT__
-        self.second_rect.x -= config.__SECOND_RECT__ / 2
-        self.second_rect.height += config.__SECOND_RECT__
-        self.second_rect.y -= config.__SECOND_RECT__ / 2
-
-        self.third_rect = self.rect.copy()
-        self.third_rect.width += config.__THIRD_RECT__
-        self.third_rect.x -= config.__THIRD_RECT__ / 2
-        self.third_rect.height += config.__THIRD_RECT__
-        self.third_rect.y -= config.__THIRD_RECT__ / 2
 
     def tick(self, env):
         self.old_x = self.rect.x
@@ -125,4 +103,3 @@ class Agent(objects.object.Drawable):
                     self.rect.top = platform.bottom
                     self.current_velocity.y = 0
 
-        self._update_rects()

@@ -61,6 +61,9 @@ class Drawer:
                 if world_rect.colliderect(tube):
                     sprite = pygame.transform.scale(sprites.tube, (tube.width, tube.height + config.__BLOCK_SIZE__ + 5))
                     self.draw_texture(tube, env, sprite)
+            # self.draw_rect(env.player_agent.first_rect, env, (34, 139, 34), 2)
+            # self.draw_rect(env.player_agent.second_rect, env, (32, 178, 170), 2)
+            # self.draw_rect(env.player_agent.third_rect, env, (124, 252, 0), 1)
         else:
             # Draw the platforms
             for platform in env.platforms:
@@ -82,8 +85,13 @@ class Drawer:
                 self.draw_rect(coin, env, (255, 255, 153))
 
             for enemy in env.enemies:
-                self.draw_rect(enemy.rect, env, (255, 0, 0))
+                if world_rect.colliderect(enemy.rect):
+                    self.draw_rect(enemy.rect, env, (255, 0, 0))
                 # self.draw_rect(enemy.top_rect, env.viewport_x, (255, 255, 0))
+
+            for tube in env.tubes:
+                if world_rect.colliderect(tube):
+                    self.draw_rect(tube, env, (0, 200, 0))
 
         myfont = pygame.font.SysFont('Comic Sans MS', 30)
         textsurface = myfont.render(str(env.score), False, (255, 255, 255))

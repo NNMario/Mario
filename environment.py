@@ -93,8 +93,9 @@ class Environment:
         # Add the floor platforms
         block_size = config.__BLOCK_SIZE__
         floor_x = 0
-        floor_y = self.height - block_size
         last_x = 0
+        floor_y = self.height - block_size
+
         for i in range(self.block_length):
             block = pygame.Rect((floor_x, floor_y, block_size, block_size))
             if random.random() < 0.10 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 4 * block_size:
@@ -104,7 +105,7 @@ class Environment:
                     self.gaps.append(gap)
                 floor_x += 2 * block_size
 
-            elif random.random() < 0.10 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 3 * block_size:
+            elif random.random() < 0.05 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 3 * block_size:
                 last_x = floor_x
                 tube_h = random.choice(range(config.__PLAYER_HEIGHT__ + block_size, 50, 5))
                 tube_y = self.ground_height - tube_h
@@ -112,12 +113,11 @@ class Environment:
                 self.platforms.append(tube)
                 self.tubes.append(tube)
                 floor_x += 2 * block_size
-            elif random.random() < 0.01 and floor_x > 10 * block_size and floor_x - last_x > 6 * block_size:
+            elif random.random() < 0.08 and floor_x > 10 * block_size and floor_x - last_x > 4 * block_size:
                 last_x = floor_x
                 for i in range(0, 3):
                     block = pygame.Rect((floor_x + i * block_size, floor_y, block_size, block_size))
                     self.platforms.append(block)
-                print('Platform')
                 platform_y = self.ground_height - random.choice(range(2 * block_size + 1, 50, 5))
                 for i in range(3):
                     platform = pygame.Rect((floor_x + i * block_size, platform_y, block_size, block_size))
@@ -169,7 +169,6 @@ class Environment:
                     enemy = EnemyAgent(
                         enemy_x, enemy_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__
                     )
-                    print('Enemy ' + str(enemy_y))
                     enemy.set_velocity(2, 0)
                     enemy.set_acceleration(0, config.__GRAVITY__)
                     self.enemies.append(enemy)
