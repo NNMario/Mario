@@ -42,10 +42,11 @@ class Game:
             draw = False
             save = False
             load = False
+            next = False
             while self.run and not self.environment.ended:
                 clock = pygame.time.Clock()
                 # Keep the game at 60 fps
-                # clock.tick_busy_loop(config.__FPS__)
+                clock.tick_busy_loop(config.__FPS__)
 
                 # poll events, see if we exit the game
                 for event in pygame.event.get():
@@ -82,7 +83,8 @@ class Game:
                     load = True
                 elif keys_list[pygame.K_f]:
                     feed = not feed
-
+                elif keys_list[pygame.K_n]:
+                    break
 
                 # Tick the world and every object in it
 
@@ -110,7 +112,7 @@ class Game:
                 if self.ticks > self.max_ticks:
                     break
                 if feed:
-                    current_controller.done(self.episodes)
+                    pass#current_controller.done(self.episodes)
             if save:
                 current_controller.save()
             if load:

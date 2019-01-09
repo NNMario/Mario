@@ -30,7 +30,7 @@ class DeepQLearning(Controller):
         self.epsilon_minimum = 0.01
         self.alpha = alpha
         self.gamma = gamma
-        self.batch_size = 32
+        self.batch_size = 25
         self.world = environment
         self.actions = actions
 
@@ -41,18 +41,16 @@ class DeepQLearning(Controller):
 
         self.state_len = 30
         self.model = Sequential([
-            Dense(50, input_shape=(self.state_len, )),
+            Dense(80, input_shape=(self.state_len, )),
             Activation('relu'),
-            Dense(100),
+            Dense(120),
             Activation('relu'),
             Dropout(0.1),
-            Dense(50),
-            Activation('relu'),
             # Dense(800, input_shape=(self.state_len,)),
             Dense(len(self.actions)),
             Activation('linear')
         ])
-        self.event_buffer = deque(maxlen=100000)
+        self.event_buffer = deque(maxlen=50000)
         self.model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
         self.episode_nr = 0
         # fig = plt.figure()
@@ -202,7 +200,7 @@ class DeepQLearning(Controller):
 
         if self.epsilon > self.epsilon_minimum:
             # self.epsilon *= self.epsilon_decay
-            self.epsilon -= 0.001
+            self.epsilon -= 0.0001
         # if self.alpha > self.min_alpha:
         #    self.alpha *= self.alpha_decay
 

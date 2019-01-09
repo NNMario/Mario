@@ -52,6 +52,7 @@ class Environment:
         self.killed_enemy = False
         self.score = 0
         self.viewport_x = 0
+        self.ticks = 0
 
     def generate(self):
         self.agents.clear()
@@ -72,6 +73,7 @@ class Environment:
         self.player_agent = None
         self.princess = None
         self.viewport_x = 0
+        self.ticks = 0
         self._generate()
 
     def snapshot(self):
@@ -95,7 +97,7 @@ class Environment:
         for i in range(self.block_length):
             block = pygame.Rect((floor_x, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
             self.platforms.append(block)
-            if random.random() < 0.15 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 4 * config.__BLOCK_SIZE__:
+            if random.random() < 0.10 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 4 * config.__BLOCK_SIZE__:
                 last_x = floor_x
                 gap = pygame.Rect((floor_x + config.__BLOCK_SIZE__, floor_y, config.__BLOCK_SIZE__,
                                    config.__BLOCK_SIZE__))
@@ -104,7 +106,7 @@ class Environment:
                                    config.__BLOCK_SIZE__))
                 self.gaps.append(gap)
                 floor_x += 3 * config.__BLOCK_SIZE__
-            elif random.random() < 0.01 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 3 * config.__BLOCK_SIZE__:
+            elif random.random() < 0.10 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 3 * config.__BLOCK_SIZE__:
                 last_x = floor_x
                 tube_h = random.choice(range(config.__PLAYER_HEIGHT__ + config.__BLOCK_SIZE__, 50, 5))
                 tube_y = self.ground_height - tube_h
@@ -114,10 +116,12 @@ class Environment:
             elif random.random() < 0.01 and floor_x > 10 * config.__BLOCK_SIZE__ and floor_x - last_x > 6 * config.__BLOCK_SIZE__:
                 last_x = floor_x
                 for i in range(1, 3):
-                    block = pygame.Rect((floor_x + i * config.__BLOCK_SIZE__, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
+                    block = pygame.Rect(
+                        (floor_x + i * config.__BLOCK_SIZE__, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
                     self.platforms.append(block)
 
-                platform_y = self.ground_height - random.choice(range(config.__PLAYER_HEIGHT__ + config.__BLOCK_SIZE__, 50, 5))
+                platform_y = self.ground_height - random.choice(
+                    range(config.__PLAYER_HEIGHT__ + config.__BLOCK_SIZE__, 50, 5))
                 platform = pygame.Rect((floor_x, platform_y, 3 * config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
                 self.platforms.append(platform)
                 self.upper_platforms.append(platform)
@@ -128,8 +132,6 @@ class Environment:
                 floor_x += 3 * config.__BLOCK_SIZE__
             else:
                 floor_x += config.__BLOCK_SIZE__
-
-
 
         # Add sprites that make the player lose on collision
         kill_block = pygame.Rect((0, self.height, self.block_length * config.__BLOCK_SIZE__, 50))
@@ -144,33 +146,6 @@ class Environment:
 
         self.enemy_touchable = self.platforms + self.gaps
         self._create_agents()
-
-
-    def _generate_enemies(self):
-        self.block_length = 200  # random.randint(400, 1000)
-        self.width = self.block_length * config.__BLOCK_SIZE__
-        # Add the floor platforms
-        floor_x = 0
-        floor_y = self.height - config.__BLOCK_SIZE__
-        last_x = 0
-        for i in range(self.block_length):
-            block = pygame.Rect((floor_x, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
-            self.platforms.append(block)
-            floor_x += config.__BLOCK_SIZE__
-
-        # Add sprites that make the player lose on collision
-        kill_block = pygame.Rect((0, self.height, self.block_length * config.__BLOCK_SIZE__, 50))
-        self.lose_triggers.append(kill_block)
-
-        self.princess = pygame.Rect(
-            ((self.block_length - 10) * config.__BLOCK_SIZE__,
-             floor_y - config.__PRINCESS_HEIGHT__,
-             config.__PRINCESS_WIDTH__,
-             config.__PRINCESS_HEIGHT__)
-        )
-
-        self.enemy_touchable = self.platforms + self.gaps
-        self._create_agents(more=True)
 
     def _create_agents(self, more=False):
         player_x = 5
@@ -188,7 +163,7 @@ class Environment:
         cnt = config.__NR_ENEMIES__
         last_x = 0
         for platform in self.platforms:
-            if random.random() < 0.05 and platform.x - last_x > 3 * config.__BLOCK_SIZE__:
+            if random.random() < 0.2 and platform.x - last_x > 3 * config.__BLOCK_SIZE__:
                 enemy_y = platform.top - config.__BLOCK_SIZE__
                 enemy_x = platform.left
                 if enemy_x > 40:
@@ -201,8 +176,8 @@ class Environment:
                     self.agents.append(enemy)
                     last_x = platform.x
 
-
     def tick(self, agent_action):
+        self.ticks += 1
         self.player_agent.perform_action(agent_action)
         self.player_agent.tick(self)
         for agent in self.agents:
@@ -234,7 +209,6 @@ class Environment:
             elif self.player_agent.rect.colliderect(enemy.rect):
                 self.end()
                 return
-
 
         hits = self.player_agent.rect.colliderect(self.princess)
         if hits:
