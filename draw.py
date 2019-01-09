@@ -56,6 +56,11 @@ class Drawer:
             for enemy in env.enemies:
                 if world_rect.colliderect(enemy.rect):
                     self.draw_texture(enemy.rect, env, sprites.enemy[(env.ticks // 7) % len(sprites.enemy)])
+
+            for tube in env.tubes:
+                if world_rect.colliderect(tube):
+                    sprite = pygame.transform.scale(sprites.tube, (tube.width, tube.height + config.__BLOCK_SIZE__ + 5))
+                    self.draw_texture(tube, env, sprite)
         else:
             # Draw the platforms
             for platform in env.platforms:

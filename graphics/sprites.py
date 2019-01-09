@@ -48,9 +48,11 @@ mario = None
 princess = None
 coin = None
 enemy = None
+tube = None
+
 
 def setup():
-    global background, sprites, block, mario, princess, coin, enemy
+    global background, sprites, block, mario, princess, coin, enemy, tube
     background = pygame.image.load('sprites/background.png')
     sprites = Spritesheet('sprites/spritesheet.png')
     block = sprites.image_at((669, 533, 30, 30), colorkey=(255, 255, 255))
@@ -66,3 +68,4 @@ def setup():
     princess = sprites.image_at((823, 1105, 16, 31), colorkey=(255, 255, 255))
 
     enemy = [sprites.image_at((165, 724, 16, 16), colorkey=(255, 255, 255))]
+    tube = sprites.image_at((566, 622, 13, 14), colorkey=(255, 255, 255))

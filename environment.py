@@ -91,54 +91,53 @@ class Environment:
         self.block_length = 200  # random.randint(400, 1000)
         self.width = self.block_length * config.__BLOCK_SIZE__
         # Add the floor platforms
+        block_size = config.__BLOCK_SIZE__
         floor_x = 0
-        floor_y = self.height - config.__BLOCK_SIZE__
+        floor_y = self.height - block_size
         last_x = 0
         for i in range(self.block_length):
-            block = pygame.Rect((floor_x, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
-            self.platforms.append(block)
-            if random.random() < 0.10 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 4 * config.__BLOCK_SIZE__:
+            block = pygame.Rect((floor_x, floor_y, block_size, block_size))
+            if random.random() < 0.10 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 4 * block_size:
                 last_x = floor_x
-                gap = pygame.Rect((floor_x + config.__BLOCK_SIZE__, floor_y, config.__BLOCK_SIZE__,
-                                   config.__BLOCK_SIZE__))
-                self.gaps.append(gap)
-                gap = pygame.Rect((floor_x + 2 * config.__BLOCK_SIZE__, floor_y, config.__BLOCK_SIZE__,
-                                   config.__BLOCK_SIZE__))
-                self.gaps.append(gap)
-                floor_x += 3 * config.__BLOCK_SIZE__
-            elif random.random() < 0.10 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 3 * config.__BLOCK_SIZE__:
+                for i in range(2):
+                    gap = pygame.Rect((floor_x + i * block_size, floor_y, block_size, block_size))
+                    self.gaps.append(gap)
+                floor_x += 2 * block_size
+
+            elif random.random() < 0.10 and i < self.block_length - config.__SAFE_LAST_BLOCKS__ and floor_x - last_x > 3 * block_size:
                 last_x = floor_x
-                tube_h = random.choice(range(config.__PLAYER_HEIGHT__ + config.__BLOCK_SIZE__, 50, 5))
+                tube_h = random.choice(range(config.__PLAYER_HEIGHT__ + block_size, 50, 5))
                 tube_y = self.ground_height - tube_h
-                tube = pygame.Rect((floor_x, tube_y, config.__BLOCK_SIZE__, tube_h))
+                tube = pygame.Rect((floor_x, tube_y, 2 * block_size, tube_h))
                 self.platforms.append(tube)
                 self.tubes.append(tube)
-            elif random.random() < 0.01 and floor_x > 10 * config.__BLOCK_SIZE__ and floor_x - last_x > 6 * config.__BLOCK_SIZE__:
+                floor_x += 2 * block_size
+            elif random.random() < 0.01 and floor_x > 10 * block_size and floor_x - last_x > 6 * block_size:
                 last_x = floor_x
-                for i in range(1, 3):
-                    block = pygame.Rect(
-                        (floor_x + i * config.__BLOCK_SIZE__, floor_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
+                for i in range(0, 3):
+                    block = pygame.Rect((floor_x + i * block_size, floor_y, block_size, block_size))
                     self.platforms.append(block)
-
-                platform_y = self.ground_height - random.choice(
-                    range(config.__PLAYER_HEIGHT__ + config.__BLOCK_SIZE__, 50, 5))
-                platform = pygame.Rect((floor_x, platform_y, 3 * config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
-                self.platforms.append(platform)
-                self.upper_platforms.append(platform)
-                coin = pygame.Rect((floor_x + config.__BLOCK_SIZE__, platform_y - config.__BLOCK_SIZE__,
-                                    config.__BLOCK_SIZE__, config.__BLOCK_SIZE__))
+                print('Platform')
+                platform_y = self.ground_height - random.choice(range(2 * block_size + 1, 50, 5))
+                for i in range(3):
+                    platform = pygame.Rect((floor_x + i * block_size, platform_y, block_size, block_size))
+                    self.platforms.append(platform)
+                    self.upper_platforms.append(platform)
+                coin = pygame.Rect((floor_x + block_size, platform_y - config.__COIN_SIZE__,
+                                    config.__COIN_SIZE__, config.__COIN_SIZE__))
                 self.coins.append(coin)
 
-                floor_x += 3 * config.__BLOCK_SIZE__
+                floor_x += 3 * block_size
             else:
-                floor_x += config.__BLOCK_SIZE__
+                self.platforms.append(block)
+                floor_x += block_size
 
         # Add sprites that make the player lose on collision
-        kill_block = pygame.Rect((0, self.height, self.block_length * config.__BLOCK_SIZE__, 50))
+        kill_block = pygame.Rect((0, self.height, self.block_length * block_size, 50))
         self.lose_triggers.append(kill_block)
 
         self.princess = pygame.Rect(
-            ((self.block_length - 10) * config.__BLOCK_SIZE__,
+            ((self.block_length - 10) * block_size,
              floor_y - config.__PRINCESS_HEIGHT__,
              config.__PRINCESS_WIDTH__,
              config.__PRINCESS_HEIGHT__)
@@ -163,13 +162,14 @@ class Environment:
         cnt = config.__NR_ENEMIES__
         last_x = 0
         for platform in self.platforms:
-            if random.random() < 0.2 and platform.x - last_x > 3 * config.__BLOCK_SIZE__:
+            if random.random() < 0.05 and platform.x - last_x > 3 * config.__BLOCK_SIZE__:
                 enemy_y = platform.top - config.__BLOCK_SIZE__
                 enemy_x = platform.left
                 if enemy_x > 40:
                     enemy = EnemyAgent(
                         enemy_x, enemy_y, config.__BLOCK_SIZE__, config.__BLOCK_SIZE__
                     )
+                    print('Enemy ' + str(enemy_y))
                     enemy.set_velocity(2, 0)
                     enemy.set_acceleration(0, config.__GRAVITY__)
                     self.enemies.append(enemy)
