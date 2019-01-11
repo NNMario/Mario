@@ -39,6 +39,7 @@ class Game:
         else:
             print('No training')
 
+        total = 0
         while self.run:
             # Generate all the blocks, enemies
             self.environment.generate()
@@ -107,14 +108,15 @@ class Game:
                     current_controller.remember(current_state, player_action, reward, self.environment)
 
                 ticks += 1
+                total += 1
                 # Draw everything
                 if draw:
-                    self.drawer.draw(self.environment)
-
+                    self.drawer.draw(self.environment, current_controller)
+                if feed and total % 2048 == 0:
+                    current_controller.done(self.episodes)
                 if ticks > self.max_ticks:
                     break
-                if feed:
-                    current_controller.done(self.episodes)
+
             self.ticks += ticks
             print(ticks, current_controller.last_acc, self.ticks)
             if save:

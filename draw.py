@@ -35,7 +35,12 @@ class Drawer:
         cp.x -= env.viewport_x
         self.win.blit(sprite, (cp.x, cp.y))
 
-    def draw(self, env: environment.Environment):
+    def put_text(self, text, pos):
+        myfont = pygame.font.SysFont('Comic Sans MS', 16)
+        textsurface = myfont.render(text, False, (105,105,105))
+        self.win.blit(textsurface, pos)
+
+    def draw(self, env: environment.Environment, controller=None):
         self.win.blit(sprites.background, (0, 0))
         world_rect = pygame.Rect((env.viewport_x, 0, self.w_width, self.w_height))
 
@@ -96,6 +101,13 @@ class Drawer:
         myfont = pygame.font.SysFont('Comic Sans MS', 30)
         textsurface = myfont.render(str(env.score), False, (255, 255, 255))
         self.win.blit(textsurface, (10, 5))
+        if controller != None:
+            state = controller.get_state(env)
+            for index, val in enumerate(state):
+                if index < len(state) / 2:
+                    self.put_text('%d: %.1f' % (index, val), (self.w_width - 150, 14 * index))
+                else:
+                    self.put_text('%d: %.1f' % (index, val), (self.w_width - 70, 14 * (index - len(state) / 2 )))
         pygame.display.update()
 
     def uninit(self):

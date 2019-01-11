@@ -14,19 +14,19 @@ class PlayerAgent(Agent):
     def _update_rects(self):
         self.first_rect = self.rect.copy()
         self.first_rect.width += config.__FIRST_RECT__
-        self.first_rect.x -= config.__FIRST_RECT__
+        self.first_rect.x -= config.__FIRST_RECT__ / 2
         self.first_rect.height += config.__FIRST_RECT__
         self.first_rect.y -= config.__FIRST_RECT__ / 2
 
         self.second_rect = self.rect.copy()
         self.second_rect.width += config.__SECOND_RECT__
-        self.second_rect.x -= config.__SECOND_RECT__
+        self.second_rect.x -= config.__SECOND_RECT__ / 2
         self.second_rect.height += config.__SECOND_RECT__
         self.second_rect.y -= config.__SECOND_RECT__ / 2
 
         self.third_rect = self.rect.copy()
         self.third_rect.width += config.__THIRD_RECT__
-        self.third_rect.x -= config.__THIRD_RECT__
+        self.third_rect.x -= config.__THIRD_RECT__ / 2
         self.third_rect.height += config.__THIRD_RECT__
         self.third_rect.y -= config.__THIRD_RECT__ / 2
 

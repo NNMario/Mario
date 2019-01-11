@@ -1,24 +1,33 @@
 import math
+import pickle
 import random
 from collections import deque
 
-import keras
 import numpy as np
 from keras.layers import Dense, Activation
-from keras.models import Sequential
-from keras import initializers
 from keras.layers import Dropout
-from keras.optimizers import RMSprop
+from keras.models import Sequential
+from keras.models import model_from_json
+
 import environment
 from controllers.controller import Controller
-import config
-import matplotlib.pyplot as plt
-from keras.models import model_from_json
-import pickle
 
 
 def distance(obj1, obj2):
     return math.sqrt((obj1.x - obj2.x) ** 2 + (obj2.y - obj2.y) ** 2)
+
+
+def closest_item(player_rect, items):
+    closest = None
+    closest_dist = None
+    for item in items:
+        if item.x >= player_rect.x:
+            dist = distance(item, player_rect)
+            if closest is None or dist < closest_dist:
+                closest = item
+                closest_dist = dist
+
+    return closest, closest_dist
 
 
 class DeepQLearning(Controller):
@@ -30,7 +39,7 @@ class DeepQLearning(Controller):
         self.epsilon_minimum = 0.01
         self.alpha = alpha
         self.gamma = gamma
-        self.batch_size = 25
+        self.batch_size = 32
         self.world = environment
         self.actions = actions
 
@@ -40,18 +49,20 @@ class DeepQLearning(Controller):
         self.old_y = None
         self.last_acc = None
 
-        self.state_len = 30
+        self.state_len = 28
         self.model = Sequential([
-            Dense(80, input_shape=(self.state_len, )),
+            Dense(80, input_shape=(self.state_len,)),
             Activation('relu'),
-            Dense(120),
+            Dense(140),
             Activation('relu'),
             Dropout(0.1),
+            Dense(50),
+            Activation('relu'),
             # Dense(800, input_shape=(self.state_len,)),
             Dense(len(self.actions)),
             Activation('linear')
         ])
-        self.event_buffer = deque(maxlen=50000)
+        self.event_buffer = deque(maxlen=2048)
         self.model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
         self.episode_nr = 0
         # fig = plt.figure()
@@ -77,56 +88,83 @@ class DeepQLearning(Controller):
         with open('model.variables', 'rb') as import_vars:
             self.gamma, self.alpha, self.epsilon, self.batch_size = pickle.load(import_vars)
 
-    def passed_gaps(self, env):
-        for gap in env.gaps:
-            if 20 > env.player_agent.rect.x - gap.right > 0 and not env.ended:
-                return True
-        return False
+    def gap_info(self, env):
+        closest = None
+        closest_dist = None
 
-    def got_coin(self, env):
-        for coin in env.coins:
-            if env.player_agent.rect.colliderect(coin): return True
-        return False
+        first = 0
+        second = 0
+        third = 0
+        passed = 0
+        for gap in env.gaps:
+            if gap.x >= env.player_agent.rect.x:
+                dist = distance(gap, env.player_agent.rect)
+                if closest is None or dist < closest_dist:
+                    closest = gap
+                    closest_dist = dist
+            if env.player_agent.first_rect.colliderect(gap):
+                first, second, third = 1, 1, 1
+            elif env.player_agent.second_rect.colliderect(gap):
+                second, third = 1, 1
+            elif env.player_agent.third_rect.colliderect(gap):
+                third = 1
+
+            if 20 > env.player_agent.rect.x - gap.right > 0 and not env.ended:
+                passed = 1
+
+        dx = 200
+        dy = 200
+
+        if closest is None:# or closest_dist > 200:
+            closest_dist = 200
+            dx = 200
+            dy = 200
+        else:
+            dx = env.player_agent.rect.x - closest.x
+            dy = env.player_agent.rect.y - closest.y
+
+        return closest_dist, dx, dy, first, second, third, passed
+
 
     def upper_platform(self, env):
-        closest = None
-        closest_dist = None
-        for upper in env.upper_platforms:
-            if upper.x >= env.player_agent.rect.x:
-                dist = distance(upper, env.player_agent.rect)
-                if closest is None or dist < closest_dist:
-                    closest = upper
-                    closest_dist = dist
-        if closest is None or closest_dist > 200:
-            return 200, (0, 0), 0
+        closest, closest_dist = closest_item(env.player_agent.rect, env.upper_platforms)
+        if not closest:# or closest_dist > 200:
+            dx = 200
+            dy = 200
+            dist = 200
+            height = 50
         else:
-            return closest_dist, (env.player_agent.rect.x - closest.x, env.player_agent.rect.y - closest.y), closest.y - env.ground_height
+            dx = env.player_agent.rect.x - closest.x
+            dy = env.player_agent.rect.y - closest.y
+            dist = closest_dist
+            height = closest.bottom - env.ground_height
+        return dx, dy, dist, height
 
     def nearest_coin(self, env):
-        closest = None
-        closest_dist = None
-        for coin in env.coins:
-            if coin.x >= env.player_agent.rect.x:
-                dist = distance(coin, env.player_agent.rect)
-                if closest is None or dist < closest_dist:
-                    closest = coin
-                    closest_dist = dist
-        if closest is None or closest_dist > 200:
-            return 200, 200
-        return env.player_agent.rect.x - closest.x, env.player_agent.rect.y - closest.y
+        closest, closest_dist = closest_item(env.player_agent.rect, env.coins)
+        if not closest:# or closest_dist > 200:
+            dx = 200
+            dy = 200
+            dist = 200
+        else:
+            dx = env.player_agent.rect.x - closest.x
+            dy = env.player_agent.rect.y - closest.y
+            dist = closest_dist
+        return dx, dy, dist
 
     def nearest_tube(self, env):
-        closest = None
-        closest_dist = None
-        for tube in env.tubes:
-            if tube.x >= env.player_agent.rect.x:
-                dist = distance(tube, env.player_agent.rect)
-                if closest is None or dist < closest_dist:
-                    closest = tube
-                    closest_dist = dist
-        if closest is None or closest_dist > 200:
-            return 200, 200, 0
-        return env.player_agent.rect.x - closest.x, env.player_agent.rect.y - closest.y, closest.y - env.ground_height
+        closest, closest_dist = closest_item(env.player_agent.rect, env.tubes)
+        if not closest:# or closest_dist > 200:
+            dx = 200
+            dy = 200
+            dist = 200
+            height = 50
+        else:
+            dx = env.player_agent.rect.x - closest.x
+            dy = env.player_agent.rect.y - closest.y
+            dist = closest_dist
+            height = closest.height
+        return dx, dy, dist, height
 
     def nearest_enemy(self, env):
         closest = None
@@ -137,28 +175,31 @@ class DeepQLearning(Controller):
                 if closest is None or dist < closest_dist:
                     closest = enemy
                     closest_dist = dist
-        if closest is None or closest_dist > 200:
+        if closest is None:# or closest_dist > 200:
             return 200, 200, 0, 0, 200
         dx = env.player_agent.rect.x - closest.rect.x
         dy = env.player_agent.rect.y - closest.rect.y
         vx, vy = closest.current_velocity.x, closest.current_velocity.y
-        return dx, dy, vx, vy, distance(closest.rect, env.player_agent.rect)
+        return dx, dy, vx, vy, closest_dist
 
     def reward(self, env: environment.Environment, old_env: environment.Environment):
         dx = env.player_agent.rect.x - old_env.player_agent.rect.x
+        state = self.get_state(env)
         score = 0
         if dx > 0:
             score += 100
+
         if env.player_agent.current_velocity.x == 0 and env.player_agent.current_velocity.y == 0:
             score -= 200
-        if self.passed_gaps(env):
-            score += 100
 
-        if env.player_agent.current_velocity.y == 0 and env.player_agent.rect.y != env.ground_height:
+        if state[6]:
             score += 200
 
+        #if env.player_agent.current_velocity.y == 0 and env.player_agent.rect.bottom != env.ground_height:
+        #    score += 100
+
         if env.got_coin:
-            score += 1000
+            score += 2000
         # score += 10 * self.passed_gaps(env)
         if env.killed_enemy:
             score += 1000
@@ -174,12 +215,13 @@ class DeepQLearning(Controller):
         return result[0]
 
     def learn(self):
-        if len(self.event_buffer) > self.batch_size:
-            batch = random.sample(self.event_buffer, self.batch_size)
+        #if len(self.event_buffer) > self.batch_size:
+        if True:
+            # batch = random.sample(self.event_buffer, self.batch_size)
             temp_buffer = []
             nn_input = []
             nn_output = []
-            for state1, action, reward, state2 in batch:
+            for state1, action, reward, state2 in self.event_buffer:
                 max_q_for_state_2 = np.amax(self.getQ(state2))
                 target = reward + self.gamma * max_q_for_state_2
                 q_for_state_1 = self.getQ(state1)
@@ -192,14 +234,17 @@ class DeepQLearning(Controller):
             # temp_buffer.sort(key=lambda x: x[2], reverse=True)
             # temp_buffer = temp_buffer[: len(temp_buffer) // 2]
             # nn_input, nn_output, _ = zip(*temp_buffer)
-            history = self.model.fit(np.array(nn_input), np.array(nn_output), verbose=0, shuffle=True)
+            history = self.model.fit(np.array(nn_input), np.array(nn_output), verbose=0, shuffle=True, batch_size=self.batch_size)
             self.last_acc = history.history['acc']
+            print(self.epsilon)
             # print('ploting!')
             # plt.plot(self.episode_nr, history.history['acc'])
 
         if self.epsilon > self.epsilon_minimum:
             # self.epsilon *= self.epsilon_decay
-            self.epsilon -= 0.0001
+            self.epsilon -= 0.025
+        else:
+            self.epsilon = self.epsilon_minimum
 
     def remember(self, env: environment.Environment, action, reward: int, next_env: environment.Environment):
         state = self.get_state(env)
@@ -229,31 +274,35 @@ class DeepQLearning(Controller):
             0,  # 2 On ground?
             0,  # 3 Is Jumping
             0,  # 4 Last action
-            0,  # 5 Has gaps nearby (distance)
+
+            0,  # 5 Distance to closest gap
             0,  # 6 Passed gap?
             0,  # 7 Gap inside first rect
             0,  # 8 Gap inside second rect
             0,  # 9 Gap inside third rect
-            0,  # 10 Player vx
-            0,  # 11 Player vy
-            0,  # 12 Distance to the closest upper platform
-            0,  # 13 DX to the closest upper platform
-            0,  # 14 DY to the closest upper platform
-            0,  # 15 DX to the closest gap
-            0,  # 16 DY to the closest gap
-            0,  # 17 DX to coin
-            0,  # 18 DY to coin
-            0,  # 19 DX to tube
-            0,  # 20 DY to tube
-            0,  # 21 DX to enemy
-            0,  # 22 DY to enemy
-            0,  # 23 Enemy vx
-            0,  # 24 Enemy vy
-            0,  # 25 Enemy distance
-            0,  # 26 Gap dx
-            0,  # 27 Gap dy
-            0,  # 28 Upper platform height
-            0,  # 29 Tube height
+            0,  # 10 Gap dx
+            0,  # 11 Gap dy
+
+            0,  # 12 Player vx
+            0,  # 13 Player vy
+            0,  # 14 Player h above the ground
+
+            0,  # 15 Distance to the closest upper platform
+            0,  # 16 DX to the closest upper platform
+            0,  # 17 DY to the closest upper platform
+            0,  # 18 Upper platform height
+
+            0,  # 19 DX to coin
+            0,  # 20 DY to coin
+            0,  # 21 Distance to coin
+
+            0,  # 22 DX to tube
+            0,  # 23 DY to tube
+            0,  # 24 Distance to tube
+            0,  # 25 Tube height
+
+            0,  # 26 DX to enemy
+            0,  # 27 DY to enemy
         ])
 
         player = env.player_agent
@@ -283,50 +332,24 @@ class DeepQLearning(Controller):
         state[3] = player.is_jump
         state[4] = self.last_action
 
-        collide_rect = player.rect.copy()
-        collide_rect.width += 10
-        collide_rect.height += 1
-        state[5] = 100
-
-        closest_gap = None
-        closest_dist = 200
-        for gap in env.gaps:
-            # state[5] = min(state[5], distance(agent, gap))
-            if collide_rect.x < gap.x:
-                dist = distance(player.rect, gap)
-                if closest_gap is None or dist < closest_dist:
-                    closest_dist = dist
-                    closest_gap = gap
-            if gap.colliderect(player.first_rect):
-                state[7] = 1
-                state[8] = 1
-                state[9] = 1
-            elif gap.colliderect(player.second_rect):
-                state[8] = 1
-                state[9] = 1
-            elif gap.colliderect(player.third_rect):
-                state[9] = 1
-
+        closest_dist, dx, dy, first, second, third, passed = self.gap_info(env)
         state[5] = closest_dist
-        state[6] = 1 if self.passed_gaps(env) else 0
-        dx, dy = (200, 200) if closest_gap is None else (env.player_agent.rect.x - closest_gap.x, env.player_agent.rect.y - closest_gap.y)
-        state[26], state[27] = dx, dy
-        state[10] = player.current_velocity.x
-        state[11] = player.current_velocity.y
-        dist, angle, upper_height = self.upper_platform(env)
-        state[12] = min(200.0, dist)
-        state[13], state[14] = angle
-        state[28] = upper_height
+        state[6] = passed
+        state[10] = dx
+        state[11] = dy
 
-        if closest_gap is not None:
-            state[15] = env.player_agent.rect.x - closest_gap.x
-            state[16] = env.player_agent.rect.y - closest_gap.y
-        else:
-            state[15], state[16] = 200, 200
+        state[12] = player.current_velocity.x
+        state[13] = player.current_velocity.y
+        state[14] = player.rect.bottom - env.ground_height
 
-        state[17], state[18] = self.nearest_coin(env)
-        state[19], state[20], state[29] = self.nearest_tube(env)
-        state[21], state[22], state[23], state[24], state[25] = self.nearest_enemy(env)
+        dx, dy, dist, height = self.upper_platform(env)
+        state[15] = dist
+        state[16] = dx
+        state[17] = dy
+        state[18] = height
 
-        # print(state)
+        state[19], state[20], state[21] = self.nearest_coin(env)
+        state[22], state[23], state[24], state[25] = self.nearest_tube(env)
+        state[26], state[27], state[7], state[8], state[9] = self.nearest_enemy(env)
+
         return state
