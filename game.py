@@ -112,7 +112,7 @@ class Game:
                 # Draw everything
                 if draw:
                     self.drawer.draw(self.environment, current_controller)
-                if feed and total % 2048 == 0:
+                if feed and total % config.__TRAIN_FRAMES__ == 0:
                     current_controller.done(self.episodes)
                 if ticks > self.max_ticks:
                     break

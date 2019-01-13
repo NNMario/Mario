@@ -29,3 +29,4 @@ __NR_ENEMIES__ = 30
 
 __TEXTURES__ = True
 __FEED__ = True
+__TRAIN_FRAMES__ = 4096

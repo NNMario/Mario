@@ -8,7 +8,7 @@ from keras.layers import Dense, Activation
 from keras.layers import Dropout
 from keras.models import Sequential
 from keras.models import model_from_json
-
+import config
 import environment
 from controllers.controller import Controller
 
@@ -37,6 +37,7 @@ class DeepQLearning(Controller):
         self.alpha_decay = 0.995
         self.min_alpha = 0.0001
         self.epsilon_minimum = 0.001
+        self.epsilon_decay = 0.03
         self.alpha = alpha
         self.gamma = gamma
         self.batch_size = 32
@@ -53,16 +54,17 @@ class DeepQLearning(Controller):
         self.model = Sequential([
             Dense(100, input_shape=(self.state_len,)),
             Activation('relu'),
-            Dense(150, kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01)),
+            Dropout(0.1),
+            Dense(160, kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01)),
             Activation('relu'),
             Dropout(0.1),
-            Dense(70, kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01)),
+            Dense(80, kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01)),
             Activation('relu'),
             # Dense(800, input_shape=(self.state_len,)),
             Dense(len(self.actions)),
             Activation('linear')
         ])
-        self.event_buffer = deque(maxlen=2048)
+        self.event_buffer = deque(maxlen=config.__TRAIN_FRAMES__)
         self.model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
         self.episode_nr = 0
         # fig = plt.figure()
@@ -240,11 +242,9 @@ class DeepQLearning(Controller):
             # print('ploting!')
             # plt.plot(self.episode_nr, history.history['acc'])
 
-        if self.epsilon > self.epsilon_minimum:
+        if self.epsilon - self.epsilon_decay >= self.epsilon_minimum:
             # self.epsilon *= self.epsilon_decay
-            self.epsilon -= 0.03
-        else:
-            self.epsilon = self.epsilon_minimum
+            self.epsilon -= self.epsilon_decay
 
     def remember(self, env: environment.Environment, action, reward: int, next_env: environment.Environment):
         state = self.get_state(env)
