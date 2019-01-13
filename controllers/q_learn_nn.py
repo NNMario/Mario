@@ -2,7 +2,7 @@ import math
 import pickle
 import random
 from collections import deque
-
+from keras import regularizers
 import numpy as np
 from keras.layers import Dense, Activation
 from keras.layers import Dropout
@@ -36,7 +36,7 @@ class DeepQLearning(Controller):
         self.epsilon = epsilon
         self.alpha_decay = 0.995
         self.min_alpha = 0.0001
-        self.epsilon_minimum = 0.01
+        self.epsilon_minimum = 0.001
         self.alpha = alpha
         self.gamma = gamma
         self.batch_size = 32
@@ -51,12 +51,12 @@ class DeepQLearning(Controller):
 
         self.state_len = 28
         self.model = Sequential([
-            Dense(80, input_shape=(self.state_len,)),
+            Dense(100, input_shape=(self.state_len,)),
             Activation('relu'),
-            Dense(140),
+            Dense(150, kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01)),
             Activation('relu'),
             Dropout(0.1),
-            Dense(50),
+            Dense(70, kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01)),
             Activation('relu'),
             # Dense(800, input_shape=(self.state_len,)),
             Dense(len(self.actions)),
@@ -199,7 +199,7 @@ class DeepQLearning(Controller):
         #    score += 100
 
         if env.got_coin:
-            score += 2000
+            score += 500
         # score += 10 * self.passed_gaps(env)
         if env.killed_enemy:
             score += 1000
@@ -242,7 +242,7 @@ class DeepQLearning(Controller):
 
         if self.epsilon > self.epsilon_minimum:
             # self.epsilon *= self.epsilon_decay
-            self.epsilon -= 0.025
+            self.epsilon -= 0.03
         else:
             self.epsilon = self.epsilon_minimum
 
